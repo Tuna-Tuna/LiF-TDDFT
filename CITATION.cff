@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "Please cite the manuscript and this software release."
+title: "LiF-TDDFT: reproducible workflow for occupied-space constraints and finite-time recovery"
+type: software
+version: 0.3.0
+date-released: 2026-08-19
+authors:
+  - family-names: Wang
+    given-names: Guangyi
+    orcid: "https://orcid.org/0000-0002-2964-0955"
+  - family-names: Li
+    given-names: Juping
+  - family-names: Zhen
+    given-names: Xiaojuan
+  - family-names: Luo
+    given-names: Dan
+  - family-names: Yang
+    given-names: Yang
+  - family-names: Li
+    given-names: Jiya
+  - family-names: Jiang
+    given-names: Kai
+  - family-names: Zhou
+    given-names: Hu
+    orcid: "https://orcid.org/0000-0002-2756-1575"
+  - family-names: Chen
+    given-names: Ximeng
+repository-code: "https://github.com/Tuna-Tuna/LiF-TDDFT"

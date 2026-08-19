@@ -1,0 +1,14 @@
+bound_radius_angstrom: [3.0, 3.5, 4.0, 4.5]
+time_step:
+  reference: 0.0006/eV
+  fine: 0.0003/eV
+grid_spacing_angstrom:
+  reference: 0.10
+  fine: 0.08
+box_radius_angstrom:
+  reference: 16.0
+  large: 20.0
+cap_strength_factor: [0.5, 1.0, 2.0]
+cap_width_angstrom: [3.0, 4.0, 5.0]
+final_separation_angstrom: [10.0, 14.0]
+representative_regimes: [strong, transition, weak]

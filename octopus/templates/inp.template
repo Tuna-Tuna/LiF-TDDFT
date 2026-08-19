@@ -1,0 +1,6 @@
+# Deprecated compatibility template.
+# Production input is rendered from single_flyby.inp.j2.  The physical gates
+# below are intentionally explicit so old tooling cannot silently launch a
+# constant-velocity trajectory that conflicts with the manuscript protocol.
+MoveIons = yes
+IonsConstantVelocity = no

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "probability_data": {
+    "normalization": "none",
+    "scale_factor": 1.0,
+    "value_transform": "none",
+    "velocity_specific_adjustments": "none",
+    "out_of_range_action": "error",
+    "applies_to": [
+      "Figure 4 Pdet",
+      "Figure 7(a) Pcap",
+      "sequential final F- fractions",
+      "experimental comparison"
+    ]
+  }
+}

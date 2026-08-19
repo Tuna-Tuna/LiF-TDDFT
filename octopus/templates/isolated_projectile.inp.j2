@@ -1,0 +1,47 @@
+# Revision run {{ run_id }}
+# Isolated moving F- background for initialization/CAP diagnostics
+FromScratch = {{ from_scratch }}
+ExperimentalFeatures = yes
+CalculationMode = {{ calculation_mode }}
+UnitsOutput = eV_Angstrom
+ParStates = auto
+ParDomains = {{ mpi_ranks }}
+PoissonSolver = isf
+Radius = {{ box_radius_angstrom }}*angstrom
+BoxShape = sphere
+Spacing = {{ grid_spacing_angstrom }}*angstrom
+MoveIons = {{ move_ions }}
+IonsConstantVelocity = {{ ions_constant_velocity }}
+TDDynamics = ehrenfest
+
+%Species
+ "F" | species_pseudo | file | "./F.oncvpsp.psp8"
+%
+height = {{ height_bohr }}
+%Coordinates
+ "F" | {{ projectile_x_bohr }} | 0 | height
+%
+Fv = {{ relative_velocity_au }}
+%Velocities
+ "F" | {{ projectile_velocity_au }} | 0 | 0
+%
+
+ExcessCharge = -1
+AbsorbingBoundaries = cap
+ABCapHeight = {{ cap_strength }}
+%ABShape
+ {{ cap_start_angstrom }}*angstrom | {{ cap_end_angstrom }}*angstrom | "r"
+%
+%Output
+{% for item in spatial_outputs %} {{ item }}
+{% endfor %}%
+OutputFormat = netcdf
+OutputInterval = {{ output_interval }}
+XCFunctional = {{ xc_functional }}
+TDPropagator = etrs
+dt = {{ time_step_expression }}
+TDTimeStep = dt
+TDPropagationTime = {{ propagation_time_expression }}
+%TDOutput
+{% for item in td_outputs %} {{ item }}
+{% endfor %}%

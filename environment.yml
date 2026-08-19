@@ -1,0 +1,13 @@
+name: lif-tddft-revision
+channels: [conda-forge]
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - pyarrow
+  - xarray
+  - netcdf4
+  - pyyaml
+  - jinja2
+  - scipy
+  - pytest

@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "campaign_id": "jctc-ct-2026-013017",
+  "heights_bohr": [2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 7.0, 10.0],
+  "relative_velocities_au": [0.10, 0.15, 0.20, 0.30, 0.40, 0.50],
+  "cluster_models": ["C9_one_site"],
+  "variants": ["production", "isolated_projectile"],
+  "initial_projectile_x_bohr": 18.8972612463,
+  "final_separation_bohr": 18.8972612463,
+  "surface_z_bohr": 0.0,
+  "projectile_fraction": -1.0,
+  "cluster_fraction": 0.0,
+  "xc_functional": "gga_x_lb + lda_c_pw",
+  "ramp": {
+    "initial_relative_velocity_au": 0.05,
+    "increment_au": 0.025,
+    "segment_time_fs": 0.04
+  },
+  "numerics": {
+    "mpi_ranks": 256,
+    "grid_spacing_angstrom": 0.10,
+    "box_radius_angstrom": 16.0,
+    "time_step_expression": "0.0006/eV",
+    "cap_start_angstrom": 12.0,
+    "cap_end_angstrom": 16.0,
+    "cap_strength": -0.2,
+    "output_interval": 100
+  },
+  "outputs": ["density", "current", "geometry", "energy", "eigenvalues"],
+  "production": {
+    "move_ions": true,
+    "ions_constant_velocity": false,
+    "fixed_surface_coordinates": true,
+    "dynamics": "ehrenfest",
+    "initial_z_velocity_au": 0.0
+  },
+  "preflight": {
+    "maximum_initial_overlap": 1.0e-6,
+    "coordinate_tolerance_bohr": 1.0e-8
+  }
+}

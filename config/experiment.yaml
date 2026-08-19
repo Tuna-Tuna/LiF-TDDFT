@@ -1,0 +1,15 @@
+source_reference: "Auth et al., Phys. Rev. A 1998, 57, 351-361"
+source_doi: "10.1103/PhysRevA.57.351"
+data_origin: "author-supplied expdata.xlsx transcription of Ref. 44"
+digitization_method: "not recorded in the supplied archive; values imported without rescaling"
+incident_angle_degree: 1.0
+azimuth: "random high-index direction"
+crystal_orientation: LiF(100)
+surface_temperature_K: 603.15
+initial_charge_state: neutral_F
+experimental_error_definition: "published asymmetric vertical uncertainties"
+normalization: none
+scale_factor: 1.0
+value_transform: none
+velocity_specific_adjustments: none
+fitted_parameters: []

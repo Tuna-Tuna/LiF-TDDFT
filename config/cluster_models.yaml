@@ -1,0 +1,15 @@
+models:
+  C9_one_site:
+    extent: small
+    explicit_collision_sites: 1
+    active_site_id: central_surface_F
+    path_direction: "[001]"
+    replace_path_anions_with_soft_potential: true
+  C25_one_site:
+    extent: large
+    explicit_collision_sites: 1
+    active_site_id: central_surface_F
+    path_direction: "[001]"
+    replace_path_anions_with_soft_potential: true
+  multi_site_memory_test:
+    purpose: weak-detachment memory diagnostic only

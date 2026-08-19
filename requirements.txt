@@ -1,0 +1,11 @@
+# Python Dependencies for LiF-TDDFT Project
+# Install: pip install -r requirements.txt
+
+# Core revision workflow
+# The workflow scripts require Python >= 3.9.
+
+# Example data generation (optional, for testing only)
+numpy>=1.24
+scipy>=1.7.0
+PyYAML>=6
+Jinja2>=3.1

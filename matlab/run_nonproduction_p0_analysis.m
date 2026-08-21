@@ -342,7 +342,8 @@ auditSummary.td_database_coverage_fraction = mean(events.within_td_database);
 auditSummary.q20_points_aligned = height(q20Td);
 auditSummary.experiment_points_in_PdE5 = size(readmatrix(fullfile(processedRoot, 'expe.csv')), 1);
 auditSummary.formal_Wgeom_status = 'diagnostic_only: six deterministic trajectories, no experimental trajectory weights or impact-parameter ensemble';
-auditSummary.demkov_provenance_status = 'SI S14 implemented exactly; archived zPcapture mismatch and gamma literature-to-number provenance are disclosed';
+auditSummary.demkov_provenance_status = ['Non-production archive audit retains saved gama only for historical comparison; ' ...
+    'production derives gamma=(sqrt(2*Et)+sqrt(2*Ep))/2 from declared energy inputs'];
 writeJson(fullfile(tableRoot, 'p0_nonproduction_analysis_summary.json'), auditSummary);
 
 summary = auditSummary;

@@ -56,7 +56,10 @@ regression material. They cannot supply the TDDFT grid or the event mean loss.
 For the capture panel, `scripts/compute_capture_probability_table.py` evaluates
 every row directly with Eq. (S14). The current manuscript labels this quantity
 as Figure 7(a) `Pcap`; there is no `v=0.10` multiplier or post-computation
-amplitude correction.
+amplitude correction. The loader derives
+`gamma=(sqrt(2*Et)+sqrt(2*Ep))/2` from the declared binding-energy inputs,
+using `Ep=d_EF` and `Et=d_EF+V_Mad` after conversion to Hartree. It rejects a
+directly configured or saved `gamma`/`gama` value.
 
 ## 5. Verify
 

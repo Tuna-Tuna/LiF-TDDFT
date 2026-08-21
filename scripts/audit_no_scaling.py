@@ -19,15 +19,9 @@ from lif_tddft.analysis.data_contract import (
     assert_values_identical,
     validate_probability_values,
 )
-from lif_tddft.models.capture_demkov import DemkovCapture
+from lif_tddft.models.demkov_parameters import load_demkov_parameters
 from lif_tddft.models.detachment_rt_tddft import detachment_sectors
 from lif_tddft.octopus_results import load_mean_loss_grid
-
-
-def gamma_from_config() -> float:
-    text = (ROOT / "config" / "demkov_parameters.yaml").read_text(encoding="utf-8")
-    line = next(row for row in text.splitlines() if row.strip().startswith("gamma_bohr_inverse:"))
-    return float(line.split(":", 1)[1].strip())
 
 
 def figure4_values(
@@ -58,7 +52,9 @@ def figure4_values(
 
 def capture_v010_error() -> tuple[int, float]:
     path = ROOT / "results" / "tables" / "demkov_s14_event_audit.csv"
-    model = DemkovCapture(gamma_from_config())
+    model = load_demkov_parameters(
+        ROOT / "config" / "demkov_parameters.yaml"
+    ).capture_model()
     differences = []
     with path.open(encoding="utf-8", newline="") as handle:
         for row in csv.DictReader(handle):

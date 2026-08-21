@@ -14,22 +14,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from lif_tddft.analysis.data_contract import validate_probability_values
-from lif_tddft.models.capture_demkov import DemkovCapture
+from lif_tddft.models.demkov_parameters import load_demkov_parameters
 
 
 REQUIRED = {"height_bohr", "v_parallel", "energy_defect_au"}
 
 
-def gamma_from_config(path: Path) -> float:
-    line = next(
-        row for row in path.read_text(encoding="utf-8").splitlines()
-        if row.strip().startswith("gamma_bohr_inverse:")
-    )
-    return float(line.split(":", 1)[1].strip())
-
-
 def compute(source: Path, output: Path, config: Path) -> None:
-    model = DemkovCapture(gamma_from_config(config))
+    model = load_demkov_parameters(config).capture_model()
     with source.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         missing = REQUIRED - set(reader.fieldnames or [])

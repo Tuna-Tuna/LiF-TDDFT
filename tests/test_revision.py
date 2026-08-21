@@ -24,7 +24,8 @@ from lif_tddft.analysis.population import (
 )
 from lif_tddft.campaign import expand_campaign, independent_histories, load_config, ramp_velocities
 from lif_tddft.clusters import build_one_active_site_cluster, topology_check
-from lif_tddft.models.capture_demkov import DemkovCapture
+from lif_tddft.models.capture_demkov import DemkovCapture, gamma_from_binding_energies
+from lif_tddft.models.demkov_parameters import load_demkov_parameters
 from lif_tddft.models.capture_energy import (
     dynamic_image_interaction,
     electrostatic_energy_defect,
@@ -191,7 +192,8 @@ class RevisionTests(unittest.TestCase):
         np.testing.assert_allclose(model.sector_probabilities(event), (0.0, 0.6, 0.4))
 
     def test_demkov_is_exact_si_s14(self):
-        gamma = 0.774677550835598
+        parameters = load_demkov_parameters(ROOT / "config" / "demkov_parameters.yaml")
+        gamma = parameters.gamma_bohr_inverse
         event = {"energy_defect_au": 0.2, "v_parallel": 0.1, "surface_height": 3.5}
         expected = 0.5 / np.cosh(
             np.pi * (0.2 + 0.1**2 / 2) / (2 * gamma * 0.1)
@@ -204,6 +206,41 @@ class RevisionTests(unittest.TestCase):
         expected_tail = 4.0 * np.exp(-700.0) / (1.0 + np.exp(-700.0)) ** 2
         self.assertEqual(stable_tail, expected_tail)
         self.assertGreater(stable_tail, 0.0)
+
+    def test_demkov_gamma_is_derived_from_Et_and_Ep(self):
+        parameters = load_demkov_parameters(ROOT / "config" / "demkov_parameters.yaml")
+        expected = gamma_from_binding_energies(
+            parameters.target_binding_energy_hartree,
+            parameters.projectile_binding_energy_hartree,
+        )
+        self.assertAlmostEqual(parameters.gamma_bohr_inverse, expected, places=15)
+        self.assertAlmostEqual(
+            parameters.target_binding_energy_hartree,
+            (
+                parameters.fluorine_electron_affinity_ev
+                + parameters.madelung_energy_magnitude_ev
+            )
+            / parameters.ev_per_hartree,
+            places=15,
+        )
+        config_text = (ROOT / "config" / "demkov_parameters.yaml").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("gamma_bohr_inverse:", config_text)
+        self.assertNotIn("PdE5.mat workspace", config_text)
+
+        with tempfile.TemporaryDirectory() as directory:
+            invalid = Path(directory) / "demkov.yaml"
+            invalid.write_text(
+                "parameters:\n"
+                "  gamma_bohr_inverse: 0.7\n"
+                "  fluorine_electron_affinity_ev: 3.40\n"
+                "  madelung_energy_magnitude_ev: 11.5850\n"
+                "  ev_per_hartree: 27.211386245988\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "must be derived"):
+                load_demkov_parameters(invalid)
 
     def test_capture_energy_equations(self):
         sites = np.asarray([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]])

@@ -11,7 +11,7 @@ or Supporting Information equation.
 | Main Sec. 2.6 piecewise closure | `models.detachment_rt_tddft.detachment_sectors` | `Nbar_det<=1`: `(P0,P1,P2)=(1-Nbar,Nbar,0)`; `1<Nbar<2`: `(0,2-Nbar,Nbar-1)` |
 | Main Eq. (20) | `models.charge_state` | Chronological independent encounters; the one-electron branch reduces to Eq. (20) |
 | SI low-height closure | `models.charge_state.transition_matrix` | Two-electron loss creates transient F+; the next encounter imposes `P(F+->F0)=1` |
-| SI Eq. (S14) | `models.capture_demkov.DemkovCapture` | `0.5*sech^2[pi*(DeltaE+v^2/2)/(2*gamma*v)]`; no extra height factor |
+| SI Eq. (S14) | `models.capture_demkov.DemkovCapture` | `0.5*sech^2[pi*(DeltaE+v^2/2)/(2*gamma*v)]`; `gamma=(sqrt(2*Et)+sqrt(2*Ep))/2`; no extra height factor |
 | SI Eq. (S15) | `models.capture_energy.electrostatic_energy_defect` and `total_energy_defect` | Two lattice sums plus Mott-Littleton and dynamic-image terms |
 | SI Eq. (S16) | `models.capture_energy.mott_littleton_polarization` | `-alpha_pm/2` times the squared field difference between active-site hole `R_+=0` and projectile `R_-=R` |
 | SI Eq. (S17) | `models.capture_energy.dynamic_image_interaction` | `-Q/(pi*v_parallel)` times the K0-weighted real surface-response integral |
@@ -31,6 +31,9 @@ special case.
 All model inputs are atomic units unless a field name says otherwise. Heights
 and positions are bohr, velocities are atomic units, energy defects are
 Hartree, `gamma` is inverse bohr, and ionic polarizabilities are bohr cubed.
+Production uses `Ep=d_EF` and `Et=d_EF+V_Mad`, converts both energies from eV
+to Hartree, and derives `gamma` at runtime. A saved `gamma`/`gama` value is not
+an accepted production input.
 
 ## Archived-array boundary
 

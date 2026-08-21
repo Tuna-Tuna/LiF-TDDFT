@@ -32,6 +32,11 @@ report. Public release is blocked until Figure 7 and SI Table S25 are
 regenerated with Eq. (S14), or the manuscript explicitly documents a different
 capture equation.
 
+The capture parameter is not imported from a saved MATLAB workspace. Production
+derives `gamma=(sqrt(2*Et)+sqrt(2*Ep))/2`, with `Ep=d_EF` and
+`Et=d_EF+V_Mad` converted to Hartree from the primary inputs declared in
+`config/demkov_parameters.yaml`.
+
 Production probability data are never normalized, rescaled, clipped, or
 corrected by a velocity-specific factor. This is enforced for Figure 4
 detachment probabilities, Figure 7(a) capture probabilities, final yields,

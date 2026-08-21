@@ -12,7 +12,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from lif_tddft.models.capture_demkov import DemkovCapture
+from lif_tddft.models.demkov_parameters import load_demkov_parameters
 from lif_tddft.models.charge_state import propagate_ordered_events
 from lif_tddft.octopus_results import load_mean_loss_grid, sha256_file
 
@@ -53,11 +53,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
 
-    config_text = args.config.read_text(encoding="utf-8")
-    gamma_line = next(
-        line for line in config_text.splitlines() if line.strip().startswith("gamma_bohr_inverse:")
-    )
-    capture = DemkovCapture(float(gamma_line.split(":", 1)[1].strip()))
+    demkov_parameters = load_demkov_parameters(args.config)
+    capture = demkov_parameters.capture_model()
     detachment, grid_payload = load_mean_loss_grid(args.tddft_grid)
     summaries = []
     histories = {}
@@ -89,6 +86,12 @@ def main(argv: list[str] | None = None) -> int:
             "velocity_specific_adjustments": "none",
         },
         "config": str(args.config),
+        "demkov_parameter_definition": {
+            "gamma_equation": "(sqrt(2*Et)+sqrt(2*Ep))/2",
+            "Et_hartree": demkov_parameters.target_binding_energy_hartree,
+            "Ep_hartree": demkov_parameters.projectile_binding_energy_hartree,
+            "gamma_bohr_inverse": demkov_parameters.gamma_bohr_inverse,
+        },
         "tddft_source": {
             "path": str(args.tddft_grid),
             "sha256": sha256_file(args.tddft_grid),

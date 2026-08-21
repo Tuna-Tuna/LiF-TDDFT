@@ -1,19 +1,22 @@
-schema_version: 2
+schema_version: 3
 model: demkov_nonresonant_capture
 parameters:
-  gamma_bohr_inverse: 0.774677550835598
+  fluorine_electron_affinity_ev: 3.40
+  madelung_energy_magnitude_ev: 11.5850
+  ev_per_hartree: 27.211386245988
   alpha_anion_bohr3: 4.3233
   alpha_cation_bohr3: 0.2027
   lattice_constant_bohr: 7.592
 equations:
+  gamma: "Ep=d_EF; Et=d_EF+V_Mad; gamma=(sqrt(2*Et)+sqrt(2*Ep))/2, with energies converted to Hartree"
   capture_probability: "SI Eq. S14: 0.5*sech(pi*(DeltaE+v_parallel^2/2)/(2*gamma*v_parallel))^2"
   energy_defect: "SI Eq. S15"
   mott_littleton: "SI Eq. S16"
   dynamic_image: "SI Eq. S17"
 sources:
   gamma:
-    value_origin: "recovered from the archived PdE5.mat workspace"
-    literature_resolution: "not established in the supplied archive"
+    value_origin: "derived at runtime from the declared Et and Ep inputs"
+    fitting_status: "fixed physical inputs; not fitted or scaled to the yield data"
   polarizabilities:
     reference: "Tessman, Kahn, and Shockley, Phys. Rev. 1953, 92, 890-895"
     doi: "10.1103/PhysRev.92.890"
@@ -22,4 +25,4 @@ sources:
 production_guards:
   additional_height_envelope_allowed: false
   energy_defect_event_field: energy_defect_au
-note: "gamma is executable for archive audit, but its literature-to-number provenance remains unresolved and is disclosed rather than inferred."
+note: "Production code derives gamma from Et and Ep and never reads a saved gamma/gama value from PdE5.mat."

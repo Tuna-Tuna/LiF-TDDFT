@@ -14,7 +14,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from lif_tddft.models.capture_demkov import DemkovCapture
+from lif_tddft.models.demkov_parameters import load_demkov_parameters
 from lif_tddft.models.charge_state import propagate_ordered_events
 
 
@@ -35,12 +35,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output-dir", type=Path, default=ROOT / "results" / "tables")
     args = parser.parse_args(argv)
 
-    parameter_text = (ROOT / "config" / "demkov_parameters.yaml").read_text(encoding="utf-8")
-    gamma_line = next(
-        line for line in parameter_text.splitlines() if line.strip().startswith("gamma_bohr_inverse:")
+    demkov_parameters = load_demkov_parameters(
+        ROOT / "config" / "demkov_parameters.yaml"
     )
-    gamma = float(gamma_line.split(":", 1)[1].strip())
-    demkov = DemkovCapture(gamma)
+    gamma = demkov_parameters.gamma_bohr_inverse
+    demkov = demkov_parameters.capture_model()
     velocity = load_csv(args.legacy_dir, "vcal.csv").reshape(-1)
     heights = load_csv(args.legacy_dir, "Zhr.csv")
     archived_capture = load_csv(args.legacy_dir, "zPcapture.csv")
@@ -113,6 +112,9 @@ def main(argv: list[str] | None = None) -> int:
     payload = {
         "schema_version": 1,
         "production_formula": "SI Eq. S14 without an additional height envelope",
+        "gamma_formula": "(sqrt(2*Et)+sqrt(2*Ep))/2",
+        "Et_hartree": demkov_parameters.target_binding_energy_hartree,
+        "Ep_hartree": demkov_parameters.projectile_binding_energy_hartree,
         "gamma_bohr_inverse": gamma,
         "maximum_archived_vs_s14_event_probability_difference": maximum,
         "archived_capture_array_matches_si_s14": maximum <= 1.0e-12,

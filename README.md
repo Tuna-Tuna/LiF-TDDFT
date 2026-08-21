@@ -62,14 +62,19 @@ actual production files and reconcile that family label.
 python -m pip install -e .
 python octopus/generate_inp_files.py --config config/campaign_revision.yaml
 python python/run_octopus_workflow.py --plan runs/<run_id>/manifest.json --dry-run
-python scripts/compute_sequential_yields.py encounters.csv --output results/yields.json
-python scripts/export_figure4_probabilities.py --source <local-table.csv>
+python scripts/extract_tddft_mean_loss.py runs --radius-angstrom <validated-radius> --output results/tddft_mean_loss_grid.json
+python scripts/compute_sequential_yields.py encounters.csv --tddft-grid results/tddft_mean_loss_grid.json --output results/yields.json
+python scripts/export_figure4_probabilities.py --tddft-grid results/tddft_mean_loss_grid.json
 python scripts/compute_capture_probability_table.py <local-input.csv> --output <local-output.csv>
-python scripts/audit_no_scaling.py
+python scripts/audit_no_scaling.py --tddft-grid results/tddft_mean_loss_grid.json
 python scripts/audit_manuscript_consistency.py --legacy-dir <local-archive-dir>
 python scripts/audit_repository_payload.py
 python -m unittest discover -s tests -v
 ```
+
+The `--dry-run` command validates a plan only. Remove `--dry-run` and execute
+every paired plan before running `extract_tddft_mean_loss.py`; the extractor
+requires completed run-status records and refuses incomplete campaigns.
 
 Generated runs are independent by construction.  A target velocity never
 reuses the acceleration history of a different target velocity.  Failed or
@@ -90,49 +95,32 @@ incomplete restart stages abort the run and are recorded in `run_status.json`.
   geometric `W_geom` diagnostics.
 - `lif_tddft.models`: mean-loss sector closure, SI Eqs. (S14)-(S17), and
   ordered F-/F0/F+ propagation with the stated F+ -> F0 closure.
-- `lif_tddft.legacy_run_process`: controlled import and replay of the saved
-  `run_process.m` workspace without its network-drive dependencies.
+- `lif_tddft.octopus_results`: strict extraction of co-moving projectile
+  populations and paired mean loss directly from Octopus density NetCDF and
+  `td.general/coordinates` output.
 
-## Importing the saved MATLAB result
+## Production TDDFT source contract
 
-`PdE5.mat` is a MATLAB 5 workspace containing the article-result variables.
-Extract only the auditable numeric subset and replay its ordered events with:
-
-```bash
-matlab -batch "addpath('matlab'); extract_run_process_results('../PdE5.mat','data/processed/run_process')"
-python scripts/replay_run_process.py data/processed/run_process
-```
-
-The extractor deliberately omits the very large `allCoordinates` cell array,
-interpolant objects, temporary structs, and local drive paths.  Python replays
-the saved per-event detachment/capture probabilities, reports TD database
-coverage, and rejects out-of-domain interpolation rather than silently
-extrapolating.
-
-Legacy MATLAB/Octave programs are retained only as regression references.
-Production analysis is configuration-driven Python and never reads undeclared
-workspace variables or silently fills missing simulation data.
-
-## Non-production P0 evidence analysis
-
-The non-production evidence audit can be rerun without launching Octopus. It
-extracts only the compact force-field columns used by the legacy classical
-loop, reconstructs ordered collision events and normal velocities, aligns the
-continuous Q20 orthogonalization descriptors with the existing v=0.30 TD
-trajectory, and compares the archived pre-contract capture array against the
-current SI Eq. (S14) implementation:
+Production detachment data are generated only from completed, paired
+`production` and `isolated_projectile` Octopus runs. The extractor reads the
+time-resolved `td.*/density*.ncdf` files and the instantaneous projectile
+positions in `td.general/coordinates`, integrates the same moving sphere in
+both runs, position-aligns the isolated reference without extrapolation, and
+applies main Eq. (5) / SI Eq. (S3a). It then reports the unscaled plateau mean
+on the complete height/velocity grid.
 
 ```bash
-matlab -batch "addpath('matlab'); extract_classical_force_fields('../PdE5.mat','data/processed/run_process/force_fields')"
-matlab -batch "addpath('matlab'); run_nonproduction_p0_analysis(pwd,'F:/codex/JCTC_纯分析结果与支撑数据_20260727')"
+python scripts/extract_tddft_mean_loss.py runs \
+  --radius-angstrom <validated-radius> \
+  --output results/tddft_mean_loss_grid.json
 ```
 
-Historical reports and their numerical tables remain in the authors' local
-archive and are excluded from Git. Current formula-audit outputs can be
-produced locally by `scripts/audit_manuscript_consistency.py`. The Wgeom code
-remains diagnostic and is not promoted to a formal experimental access weight
-until incident-condition, impact-parameter, and trajectory weights are
-supplied.
+`compute_sequential_yields.py` requires this extracted grid and rejects files
+whose `source_kind` is not `octopus_rt_tddft_density`. It cannot use a saved
+MATLAB workspace, archived `zPloss.csv`, or manually populated `mean_loss`
+column as production input. Historical MATLAB/Octave replay utilities are
+retained only as non-production regression aids and are not part of the
+reproduction commands above.
 
 ## Data and provenance
 

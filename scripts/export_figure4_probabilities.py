@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export Figure 4 Pdet nodes without changing any probability value."""
+"""Export Figure 4 Pdet directly from the production RT-TDDFT mean-loss grid."""
 
 from __future__ import annotations
 
@@ -19,52 +19,45 @@ from lif_tddft.analysis.data_contract import (
     assert_values_identical,
     validate_probability_values,
 )
+from lif_tddft.models.detachment_rt_tddft import detachment_sectors
+from lif_tddft.octopus_results import load_mean_loss_grid, sha256_file
 
 
-VELOCITY_COLUMNS = {
-    "v0p10": 0.10,
-    "v0p15": 0.15,
-    "v0p20": 0.20,
-    "v0p30": 0.30,
-    "v0p40": 0.40,
-    "v0p50": 0.50,
-}
 POLICY = json.loads((ROOT / "config" / "data_policy.json").read_text(encoding="utf-8"))[
     "probability_data"
 ]
 
 
+def pdet_from_mean_loss(value: float) -> float:
+    p0, _, _ = detachment_sectors(float(value))
+    return 1.0 - p0
+
+
 def export(source: Path, output: Path, metadata_output: Path) -> None:
     assert_no_scaling_policy(POLICY)
-    with source.open(encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        missing = {"height_bohr", "node_status", *VELOCITY_COLUMNS} - set(
-            reader.fieldnames or []
-        )
-        if missing:
-            raise ValueError(f"Figure 4 source lacks columns: {sorted(missing)}")
-        source_rows = list(reader)
-    if not source_rows:
-        raise ValueError("Figure 4 source table is empty")
+    _, payload = load_mean_loss_grid(source)
+    assert_no_scaling_policy(payload["data_policy"])
+    heights = np.asarray(payload["heights_bohr"], dtype=float)
+    velocities = np.asarray(payload["velocities_au"], dtype=float)
+    mean_loss = np.asarray(payload["mean_loss"], dtype=float)
 
     output_rows = []
-    source_values = []
+    computed_values = []
     exported_values = []
-    for row in source_rows:
-        for column, velocity in VELOCITY_COLUMNS.items():
-            value_text = row[column]
-            value = float(value_text)
-            source_values.append(value)
+    for height_index, height in enumerate(heights):
+        for velocity_index, velocity in enumerate(velocities):
+            value = pdet_from_mean_loss(mean_loss[height_index, velocity_index])
+            computed_values.append(value)
             output_rows.append({
-                "height_bohr": row["height_bohr"],
-                "velocity_au": f"{velocity:.2f}",
-                "probability_p_det": value_text,
-                "node_status": row["node_status"],
+                "height_bohr": format(float(height), ".17g"),
+                "velocity_au": format(float(velocity), ".17g"),
+                "probability_p_det": format(value, ".17g"),
+                "node_status": "direct_octopus_tddft",
             })
-            exported_values.append(float(value_text))
-    validate_probability_values(np.asarray(source_values), label="Figure 4 Pdet")
+            exported_values.append(float(output_rows[-1]["probability_p_det"]))
+    validate_probability_values(np.asarray(computed_values), label="Figure 4 Pdet")
     assert_values_identical(
-        np.asarray(source_values), np.asarray(exported_values), label="Figure 4 Pdet"
+        np.asarray(computed_values), np.asarray(exported_values), label="Figure 4 Pdet"
     )
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -81,6 +74,9 @@ def export(source: Path, output: Path, metadata_output: Path) -> None:
         "figure": "Figure 4",
         "quantity": "single-collision detachment probability Pdet",
         "source": source_label,
+        "source_kind": payload["source_kind"],
+        "source_sha256": sha256_file(source),
+        "mapping": "Pdet = 1 - P0 from manuscript Sec. 2.6",
         **POLICY,
         "v0p10_special_scaling": False,
     }
@@ -91,9 +87,9 @@ def export(source: Path, output: Path, metadata_output: Path) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--source",
+        "--tddft-grid",
         type=Path,
-        default=ROOT / "data" / "processed" / "manuscript" / "detachment_mean_loss_nodes.csv",
+        required=True,
     )
     parser.add_argument(
         "--output",
@@ -106,7 +102,7 @@ def main(argv: list[str] | None = None) -> int:
         default=ROOT / "data" / "processed" / "manuscript" / "figure4_pdet.metadata.json",
     )
     args = parser.parse_args(argv)
-    export(args.source, args.output, args.metadata_output)
+    export(args.tddft_grid, args.output, args.metadata_output)
     print(f"wrote {args.output} without scaling")
     return 0
 

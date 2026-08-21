@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Propagate manuscript charge-state equations from an encounter table."""
+"""Propagate charge states using a mean-loss grid extracted from RT-TDDFT."""
 
 from __future__ import annotations
 
@@ -14,12 +14,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from lif_tddft.models.capture_demkov import DemkovCapture
 from lif_tddft.models.charge_state import propagate_ordered_events
-from lif_tddft.models.detachment_rt_tddft import detachment_sectors
+from lif_tddft.octopus_results import load_mean_loss_grid, sha256_file
 
 
 REQUIRED = {
     "trajectory_id", "event_index", "event_time", "surface_height",
-    "v_parallel", "mean_loss", "energy_defect_au",
+    "v_parallel", "energy_defect_au",
 }
 
 
@@ -37,7 +37,6 @@ def read_events(path: Path) -> dict[str, list[dict]]:
                 "event_time": float(row["event_time"]),
                 "surface_height": float(row["surface_height"]),
                 "v_parallel": float(row["v_parallel"]),
-                "mean_loss": float(row["mean_loss"]),
                 "energy_defect_au": float(row["energy_defect_au"]),
             }
             grouped.setdefault(event["trajectory_id"], []).append(event)
@@ -50,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("encounters", type=Path)
     parser.add_argument("--config", type=Path, default=ROOT / "config" / "demkov_parameters.yaml")
+    parser.add_argument("--tddft-grid", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
 
@@ -58,6 +58,7 @@ def main(argv: list[str] | None = None) -> int:
         line for line in config_text.splitlines() if line.strip().startswith("gamma_bohr_inverse:")
     )
     capture = DemkovCapture(float(gamma_line.split(":", 1)[1].strip()))
+    detachment, grid_payload = load_mean_loss_grid(args.tddft_grid)
     summaries = []
     histories = {}
     for trajectory_id, events in read_events(args.encounters).items():
@@ -66,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
             None,
             capture.probability,
             initial_state="F_neutral",
-            detachment_sector_probabilities=lambda event: detachment_sectors(event["mean_loss"]),
+            detachment_sector_probabilities=detachment.sector_probabilities,
         )
         summaries.append({
             "trajectory_id": trajectory_id,
@@ -88,6 +89,12 @@ def main(argv: list[str] | None = None) -> int:
             "velocity_specific_adjustments": "none",
         },
         "config": str(args.config),
+        "tddft_source": {
+            "path": str(args.tddft_grid),
+            "sha256": sha256_file(args.tddft_grid),
+            "source_kind": grid_payload["source_kind"],
+            "equation": grid_payload.get("equation"),
+        },
         "summaries": summaries,
         "histories": histories,
     }

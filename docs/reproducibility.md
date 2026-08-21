@@ -14,34 +14,44 @@ surface atoms immobile and the projectile movable. Ground-state stages use
 
 ## 2. Produce the mean-loss map
 
-Compute projectile-centered populations with the recorded instantaneous
-projectile coordinate. Use the interacting trajectory, position-aligned
-isolated projectile, and static surface reference. The paired loss and
-surface-corrected diagnostic are implemented in `analysis.population`.
+Run `scripts/extract_tddft_mean_loss.py` on the completed campaign directory.
+The production extractor reads each Octopus `td.*/density*.ncdf` frame and the
+recorded instantaneous projectile coordinate from `td.general/coordinates`.
+It computes projectile-centered populations for the interacting and isolated
+projectile runs and applies main Eq. (5) / SI Eq. (S3a) after bounded
+position-alignment. The selected population radius must be supplied explicitly
+and justified by the radius-convergence calculation.
 
 No out-of-domain node may be silently extrapolated. Local source tables must
 label any continuation boundary explicitly. Numerical source tables and their
 exported figure values are excluded from Git.
 
 Probability amplitudes are never normalized, rescaled, clipped, or adjusted
-by velocity. Given an author-supplied local wide table,
-`scripts/export_figure4_probabilities.py` converts it to long form by copying
-the numeric strings unchanged; in particular, the `v=0.10` column has no
-special branch. Both the source and generated table stay outside Git. In the
-current manuscript Figure 4 is `Pdet`, not capture.
+by velocity. `scripts/export_figure4_probabilities.py` reads the direct TDDFT
+grid, applies only the manuscript sector mapping `Pdet=1-P0`, and writes the
+Figure 4 nodes. In particular, `v=0.10` has no special branch. Both the
+extracted grid and generated table stay outside Git. In the current manuscript
+Figure 4 is `Pdet`, not capture.
 
 ## 3. Reconstruct trajectories and encounters
 
 Use `integrate_grazing_trajectory` for uniform parallel motion and calculated
 normal motion. `trajectory.events.identify_events` creates a chronological
 encounter table. A production table for `compute_sequential_yields.py` must
-contain `trajectory_id,event_index,event_time,surface_height,v_parallel,mean_loss,energy_defect_au`.
+contain `trajectory_id,event_index,event_time,surface_height,v_parallel,energy_defect_au`.
+The detachment mean loss is evaluated from the extracted TDDFT grid inside the
+yield program; it must not be supplied as a manually prepared event column.
 
 ## 4. Calculate capture and propagate yields
 
-Evaluate SI Eqs. (S15)-(S17), then Eq. (S14). Map each mean loss to
+Evaluate SI Eqs. (S15)-(S17), then Eq. (S14). Invoke
+`compute_sequential_yields.py` with `--tddft-grid` pointing to the direct
+Octopus extraction. Map each mean loss to
 `(P0,P1,P2)` and propagate F-/F0/F+ states from neutral F. No experimental
 normalization, scale factor, or fit parameter is applied.
+
+Saved MATLAB workspaces and arrays extracted from them are non-production
+regression material. They cannot supply the TDDFT grid or the event mean loss.
 
 For the capture panel, `scripts/compute_capture_probability_table.py` evaluates
 every row directly with Eq. (S14). The current manuscript labels this quantity

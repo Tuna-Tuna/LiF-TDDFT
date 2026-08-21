@@ -133,7 +133,7 @@ def dynamic_image_interaction(
     if response.shape != omega.shape or np.any(~np.isfinite(response)):
         raise ValueError("surface response must be finite on the omega grid")
     integrand = _bessel_k0(2.0 * omega * height / speed) * response
-    trapezoid = getattr(np, "trapezoid", np.trapz)
+    trapezoid = np.trapezoid if hasattr(np, "trapezoid") else np.trapz
     return float(-charge / (np.pi * speed) * trapezoid(integrand, omega))
 
 

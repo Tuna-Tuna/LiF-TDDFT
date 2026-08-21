@@ -7,7 +7,7 @@ name = "lif-tddft"
 version = "0.3.0"
 description = "Reproducible F-/LiF(100) RT-TDDFT and sequential charge-state workflow"
 requires-python = ">=3.10"
-dependencies = ["numpy>=1.24", "scipy>=1.10", "PyYAML>=6", "Jinja2>=3.1"]
+dependencies = ["numpy>=1.24", "scipy>=1.10", "PyYAML>=6", "Jinja2>=3.1", "xarray>=2024.1", "netCDF4>=1.6"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

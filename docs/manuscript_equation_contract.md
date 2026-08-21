@@ -6,7 +6,7 @@ or Supporting Information equation.
 
 | Paper definition | Code | Enforced interpretation |
 |---|---|---|
-| Main Eq. (5); SI Eq. (S3a) | `analysis.population.paired_projectile_mean_loss` | Paired interacting-minus-aligned-isolated population change |
+| Main Eq. (5); SI Eq. (S3a) | `octopus_results.extract_paired_plateau` and `analysis.population.paired_projectile_mean_loss` | Direct Octopus density extraction followed by paired interacting-minus-position-aligned-isolated population change |
 | SI Eq. (S3b) | `analysis.population.surface_corrected_local_deficit` | Moving static-surface correction is time dependent |
 | Main Sec. 2.6 piecewise closure | `models.detachment_rt_tddft.detachment_sectors` | `Nbar_det<=1`: `(P0,P1,P2)=(1-Nbar,Nbar,0)`; `1<Nbar<2`: `(0,2-Nbar,Nbar-1)` |
 | Main Eq. (20) | `models.charge_state` | Chronological independent encounters; the one-electron branch reduces to Eq. (20) |
@@ -41,8 +41,9 @@ expression multiplied Eq. (S14) by
 `sech^2[1.2*v^2*(h-3)]`. Production Python forbids that factor. The difference
 can be generated locally by `scripts/audit_manuscript_consistency.py`.
 
-The current SI reference fractions and encounter-resolved numerical data are
-not distributed in this code-and-input repository. When supplied locally,
-they are treated as reference assertions rather than recomputed outputs because
-the encounter-resolved detachment values used in the later update were not
-retained in the supplied archive.
+No value extracted from `PdE5.mat`, `run_process.m`, `zPloss.csv`, or another
+saved result array is a production detachment input. Production mean loss is
+recomputed from paired Octopus `td.*/density*.ncdf` and
+`td.general/coordinates` outputs by `scripts/extract_tddft_mean_loss.py`.
+`scripts/compute_sequential_yields.py` rejects any grid that does not declare
+`source_kind=octopus_rt_tddft_density` and carry run provenance.

@@ -20,6 +20,8 @@ from lif_tddft.analysis.data_contract import (
     validate_probability_values,
 )
 from lif_tddft.models.capture_demkov import DemkovCapture
+from lif_tddft.models.detachment_rt_tddft import detachment_sectors
+from lif_tddft.octopus_results import load_mean_loss_grid
 
 
 def gamma_from_config() -> float:
@@ -28,17 +30,24 @@ def gamma_from_config() -> float:
     return float(line.split(":", 1)[1].strip())
 
 
-def figure4_values() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    wide_path = ROOT / "data" / "processed" / "manuscript" / "detachment_mean_loss_nodes.csv"
-    long_path = ROOT / "data" / "processed" / "manuscript" / "figure4_pdet.csv"
-    with wide_path.open(encoding="utf-8", newline="") as handle:
-        wide = list(csv.DictReader(handle))
+def figure4_values(
+    grid_path: Path, long_path: Path
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    _, payload = load_mean_loss_grid(grid_path)
     with long_path.open(encoding="utf-8", newline="") as handle:
         long = list(csv.DictReader(handle))
-    columns = ["v0p10", "v0p15", "v0p20", "v0p30", "v0p40", "v0p50"]
-    source = np.asarray([float(row[column]) for row in wide for column in columns])
+    velocities = np.asarray(payload["velocities_au"], dtype=float)
+    mean_loss = np.asarray(payload["mean_loss"], dtype=float)
+    source = np.asarray(
+        [1.0 - detachment_sectors(value)[0] for row in mean_loss for value in row],
+        dtype=float,
+    )
     exported = np.asarray([float(row["probability_p_det"]) for row in long])
-    source_v010 = np.asarray([float(row["v0p10"]) for row in wide])
+    velocity_mask = np.isclose(velocities, 0.10, rtol=0.0, atol=1.0e-12)
+    if np.count_nonzero(velocity_mask) != 1:
+        raise ValueError("the TDDFT grid must contain exactly one v=0.10 column")
+    source_v010 = np.asarray(mean_loss[:, velocity_mask].reshape(-1), dtype=float)
+    source_v010 = np.asarray([1.0 - detachment_sectors(value)[0] for value in source_v010])
     exported_v010 = np.asarray([
         float(row["probability_p_det"])
         for row in long
@@ -69,6 +78,16 @@ def capture_v010_error() -> tuple[int, float]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--tddft-grid",
+        type=Path,
+        required=True,
+    )
+    parser.add_argument(
+        "--figure4-table",
+        type=Path,
+        default=ROOT / "data" / "processed" / "manuscript" / "figure4_pdet.csv",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=ROOT / "results" / "tables" / "no_scaling_audit.json",
@@ -79,7 +98,9 @@ def main(argv: list[str] | None = None) -> int:
         "probability_data"
     ]
     assert_no_scaling_policy(policy)
-    source, exported, source_v010, exported_v010 = figure4_values()
+    source, exported, source_v010, exported_v010 = figure4_values(
+        args.tddft_grid, args.figure4_table
+    )
     validate_probability_values(source, label="Figure 4 Pdet")
     assert_values_identical(source, exported, label="Figure 4 Pdet")
     assert_values_identical(source_v010, exported_v010, label="Figure 4 v=0.10 Pdet")

@@ -63,6 +63,27 @@ actual production files and reconcile that family label.
 
 ## Quick start
 
+### PRA figures 2–6 and checked EPS export
+
+The PRA plotting entry point is `scripts/reproduce_pra_figures.py`. It reads
+author-supplied local plotting tables and arrays and exports PDF, EPS, PNG,
+and TIFF. No simulation or probability recalculation is performed by this
+entry point. The numerical files remain outside this code-only repository.
+
+```bash
+python -m pip install -e ".[figures]"
+python scripts/reproduce_pra_figures.py --data-dir /path/to/source_data --verify-eps
+```
+
+EPS export embeds vector glyph outlines and checks each named glyph reference.
+`--verify-eps` additionally uses Ghostscript to convert the EPS to PDF and render
+that PDF for visual review. See [PRA figure reproduction](docs/pra_figures.md)
+for input structure, fonts, export verification, and platform-specific options.
+The historical calculation consistency issues listed above remain separate
+from reproduction of these supplied plotting data.
+
+### Calculation workflows
+
 ```bash
 python -m pip install -e .
 python octopus/generate_inp_files.py --config config/campaign_revision.yaml

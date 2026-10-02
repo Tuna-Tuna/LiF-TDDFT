@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate SI Eq. (S14) for a Figure 7(a)-style grid without scaling."""
+"""Evaluate the Demkov capture formula for the supplied capture grid without scaling."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def compute(source: Path, output: Path, config: Path) -> None:
         probability = model.probability(event)
         probabilities.append(probability)
         row["p_capture"] = repr(probability)
-    validate_probability_values(np.asarray(probabilities), label="Figure 7(a) Pcap")
+    validate_probability_values(np.asarray(probabilities), label="Capture probability Pcap")
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=[*fieldnames, "p_capture"])
@@ -60,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     compute(args.source, args.output, args.config)
-    print(f"wrote {args.output} from SI Eq. (S14) without scaling")
+    print(f"wrote {args.output} from the Demkov capture formula without scaling")
     return 0
 
 

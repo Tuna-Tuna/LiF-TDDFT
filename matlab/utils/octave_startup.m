@@ -8,7 +8,7 @@
 % This script loads required Octave packages and verifies compatibility.
 %
 % NOTE: Octave >= 4.4 is required for full compatibility (contains(),
-%       griddedInterpolant with cell arrays, etc.). Octave 6.0+ recommended.
+%       NetCDF data access, etc.). Octave 6.0+ recommended.
 
 fprintf('=== GNU Octave Compatibility Setup ===\n');
 

@@ -8,7 +8,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from lif_tddft.analysis.interpolation import BoundedGridInterpolator, OutOfDomainError
+from lif_tddft.analysis.interpolation import DetachmentProbabilityInterpolator, OutOfDomainError
 from lif_tddft.analysis.data_contract import (
     assert_no_scaling_policy,
     assert_values_identical,
@@ -119,12 +119,12 @@ class RevisionTests(unittest.TestCase):
         self.assertAlmostEqual(occupied_overlap_descriptors(s)["Omega_occ"], 0.25)
 
     def test_bounded_interpolation(self):
-        interp = BoundedGridInterpolator(np.asarray([3.0, 4.0]), np.asarray([0.2, 0.4]), np.asarray([[0.2, 0.4], [0.1, 0.2]]))
+        interp = DetachmentProbabilityInterpolator(np.asarray([3.0, 4.0]), np.asarray([0.2, 0.4]), np.asarray([[0.2, 0.4], [0.1, 0.2]]))
         self.assertAlmostEqual(interp(3.5, 0.3), 0.225)
         with self.assertRaises(OutOfDomainError):
             interp(2.0, 0.3)
         with self.assertRaisesRegex(ValueError, "clipping or rescaling is forbidden"):
-            BoundedGridInterpolator(
+            DetachmentProbabilityInterpolator(
                 np.asarray([3.0, 4.0]),
                 np.asarray([0.2, 0.4]),
                 np.asarray([[0.2, 1.2], [0.1, 0.2]]),
@@ -181,17 +181,33 @@ class RevisionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             detachment_sectors(2.0)
 
-    def test_mean_loss_interpolation_preserves_two_electron_branch(self):
+    def test_detachment_probabilities_preserve_calculated_nodes(self):
         model = RTDetachment.from_mean_loss_grid(
             np.asarray([2.0, 2.5]),
             np.asarray([0.4, 0.5]),
             np.asarray([[1.4, 1.5], [0.8, 0.9]]),
         )
         event = {"surface_height": 2.0, "v_parallel": 0.4}
-        self.assertAlmostEqual(model.mean_loss(event), 1.4)
+        self.assertEqual(model.probability(event), 1.0)
         np.testing.assert_allclose(model.sector_probabilities(event), (0.0, 0.6, 0.4))
 
-    def test_demkov_is_exact_si_s14(self):
+    def test_only_probabilities_are_interpolated_across_sector_boundary(self):
+        model = RTDetachment.from_mean_loss_grid(
+            np.asarray([2.0, 2.5]), np.asarray([0.4, 0.5]),
+            np.asarray([[1.4, 1.5], [0.8, 0.9]]),
+        )
+        event = {"surface_height": 2.25, "v_parallel": 0.45}
+        np.testing.assert_allclose(model.sector_probabilities(event), (0.075, 0.7, 0.225))
+        self.assertAlmostEqual(model.probability(event), 0.925)
+        with self.assertRaises(OutOfDomainError):
+            model.probability({"surface_height": 1.9, "v_parallel": 0.45})
+
+    def test_detachment_grid_does_not_fill_missing_nodes(self):
+        for values in ([[0.1, np.nan], [0.3, 0.4]], [[0.1, 0.2], [0.3, np.inf]]):
+            with self.assertRaisesRegex(ValueError, "finite"):
+                RTDetachment.from_mean_loss_grid(np.asarray([2., 3.]), np.asarray([.1, .2]), np.asarray(values))
+
+    def test_demkov_matches_capture_formula(self):
         parameters = load_demkov_parameters(ROOT / "config" / "demkov_parameters.yaml")
         gamma = parameters.gamma_bohr_inverse
         event = {"energy_defect_au": 0.2, "v_parallel": 0.1, "surface_height": 3.5}

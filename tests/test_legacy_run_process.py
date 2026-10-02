@@ -28,7 +28,7 @@ class LegacyReplayTests(unittest.TestCase):
                 "Pfin": np.asarray([[0.0, 0.5], [0.0, 0.6]]),
                 "last_non_zero": np.asarray([[0.5], [0.6]]),
                 "Zturn": np.asarray([[2.5, 1.5]]),
-                "expe": np.asarray([[0.2, 0.5], [0.4, 0.6]]),
+                "expe": np.asarray([[0.2, 0.5], [0.4, 0.6], [0.3, 9.0]]),
             }
             records = []
             for name, value in arrays.items():
@@ -41,6 +41,9 @@ class LegacyReplayTests(unittest.TestCase):
             result = replay(root)
             self.assertAlmostEqual(result["velocity_summaries"][0]["replay_absolute_error"], 0.0)
             self.assertEqual(result["velocity_summaries"][1]["out_of_domain_events"], 1)
+            self.assertEqual(result["experiment_points_at_calculated_velocities"], 2)
+            self.assertEqual(result["experiment_points_unmatched"], 1)
+            self.assertEqual(result["unscaled_theory_experiment_rmse"], 0.0)
 
 
 if __name__ == "__main__":

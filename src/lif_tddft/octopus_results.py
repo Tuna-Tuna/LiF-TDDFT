@@ -218,22 +218,34 @@ def align_isolated_population(
     isolated_x: np.ndarray,
     isolated_population: np.ndarray,
 ) -> np.ndarray:
-    """Position-align the isolated reference; extrapolation is forbidden."""
+    """Select recorded populations at matching positions, without resampling.
+
+    The absolute 1e-10 tolerance accommodates coordinate serialization only.
+    Missing or ambiguous samples are errors.
+    """
 
     target = np.asarray(production_x, dtype=float)
     source = np.asarray(isolated_x, dtype=float)
     values = np.asarray(isolated_population, dtype=float)
     if source.shape != values.shape or source.ndim != 1:
         raise ValueError("isolated positions and populations must be equal one-dimensional arrays")
+    if (source.size == 0 or target.ndim != 1 or np.any(~np.isfinite(source))
+            or np.any(~np.isfinite(target)) or np.any(~np.isfinite(values))):
+        raise ValueError("reference matching requires finite, nonempty source data")
     order = np.argsort(source)
     source = source[order]
     values = values[order]
     if np.any(np.diff(source) <= 0):
         raise ValueError("isolated projectile x positions must be unique")
-    tolerance = 1.0e-10 * max(1.0, float(np.max(np.abs(source))))
-    if np.any(target < source[0] - tolerance) or np.any(target > source[-1] + tolerance):
-        raise ValueError("production positions lie outside the isolated-reference domain")
-    return np.interp(target, source, values)
+    indices = []
+    for position in target:
+        index = int(np.searchsorted(source, position))
+        candidates = [i for i in (index - 1, index, index + 1) if 0 <= i < source.size]
+        matches = [i for i in candidates if abs(source[i] - position) <= 1.0e-10]
+        if len(matches) != 1:
+            raise ValueError(f"production position {position} needs exactly one recorded isolated-reference sample")
+        indices.append(matches[0])
+    return values[np.asarray(indices, dtype=int)]
 
 
 def extract_paired_plateau(

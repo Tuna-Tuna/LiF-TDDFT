@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export Figure 4 Pdet directly from the production RT-TDDFT mean-loss grid."""
+"""Export Detachment probability Pdet directly from the production RT-TDDFT mean-loss grid."""
 
 from __future__ import annotations
 
@@ -55,9 +55,9 @@ def export(source: Path, output: Path, metadata_output: Path) -> None:
                 "node_status": "direct_octopus_tddft",
             })
             exported_values.append(float(output_rows[-1]["probability_p_det"]))
-    validate_probability_values(np.asarray(computed_values), label="Figure 4 Pdet")
+    validate_probability_values(np.asarray(computed_values), label="Detachment probability Pdet")
     assert_values_identical(
-        np.asarray(computed_values), np.asarray(exported_values), label="Figure 4 Pdet"
+        np.asarray(computed_values), np.asarray(exported_values), label="Detachment probability Pdet"
     )
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -71,12 +71,12 @@ def export(source: Path, output: Path, metadata_output: Path) -> None:
         source_label = str(source.resolve())
     metadata = {
         "schema_version": 1,
-        "figure": "Figure 4",
+        "data_product": "detachment_probabilities",
         "quantity": "single-collision detachment probability Pdet",
         "source": source_label,
         "source_kind": payload["source_kind"],
         "source_sha256": sha256_file(source),
-        "mapping": "Pdet = 1 - P0 from manuscript Sec. 2.6",
+        "mapping": "Pdet = 1 - P0 from the detachment-sector model",
         **POLICY,
         "v0p10_special_scaling": False,
     }
@@ -94,12 +94,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--output",
         type=Path,
-        default=ROOT / "data" / "processed" / "manuscript" / "figure4_pdet.csv",
+        default=ROOT / "data" / "processed" / "manuscript" / "detachment_probabilities.csv",
     )
     parser.add_argument(
         "--metadata-output",
         type=Path,
-        default=ROOT / "data" / "processed" / "manuscript" / "figure4_pdet.metadata.json",
+        default=ROOT / "data" / "processed" / "manuscript" / "detachment_probabilities.metadata.json",
     )
     args = parser.parse_args(argv)
     export(args.tddft_grid, args.output, args.metadata_output)

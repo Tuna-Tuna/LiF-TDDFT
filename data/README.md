@@ -45,13 +45,9 @@ run_directory/
 
 ### Data Access
 
-A persistent raw-data archive identifier has not yet been assigned; this
-remains a release-metadata requirement.
-
-For access before publication, please contact the corresponding authors:
-
-- **Guangyi Wang** — School of Electronic Engineering, Lanzhou City University
-- **Hu Zhou** — School of Science, Xi'an Polytechnic University
+Numerical data are not distributed in this code repository. Contact the
+manuscript's corresponding authors for access to the underlying calculation
+outputs and experimental comparison data.
 
 ### Dataset Organization
 
@@ -82,14 +78,12 @@ data/
 
 ## External Dependencies
 
-- **Pseudopotentials**: the historical inputs refer to
-  `Li.oncvpsp.psp8` and `F.oncvpsp.psp8`, but the exact production files and
-  checksums are not present. The manuscript instead names Troullier-Martins
-  pseudopotentials. This unresolved provenance conflict is a release blocker;
-  do not replace the files with arbitrary same-element pseudopotentials.
+- **Pseudopotentials**: the inputs reference `Li.oncvpsp.psp8` and
+  `F.oncvpsp.psp8`. The actual production files and their checksums must be
+  supplied and verified before calculation; they are not distributed here.
 - **Octopus code**: Version 16.0 or later from https://octopus-code.org
 
-## Revision data contract
+## Data contract
 
 Raw Octopus output remains outside Git. Each production run should preserve its
 input, stage logs, restart validation, `run_status.json`, and `provenance.json`.

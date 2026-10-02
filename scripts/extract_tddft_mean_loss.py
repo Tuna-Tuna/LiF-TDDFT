@@ -99,7 +99,7 @@ def build_grid(
     return {
         "schema_version": 1,
         "source_kind": "octopus_rt_tddft_density",
-        "equation": "main Eq. (5); SI Eq. (S3a)",
+        "equation": "paired interacting-minus-isolated population change",
         "cluster_model": models[0],
         "bound_radius_angstrom": radius_angstrom,
         "tail_fraction": tail_fraction,

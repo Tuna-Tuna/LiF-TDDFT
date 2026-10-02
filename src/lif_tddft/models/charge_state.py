@@ -1,4 +1,4 @@
-"""Ordered propagation implementing manuscript Sec. 2.6 and SI Sec. S9."""
+"""Ordered propagation implementing the ordered charge-state model."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def transition_matrix(
     """Return the column-stochastic F-/F0/F+ encounter matrix.
 
     ``p_det`` is ``1-P0`` and ``p_det_two`` is the two-electron sector P2.
-    The SI closure imposes unity F+ -> F0 at the next encounter.
+    The charge-state closure imposes unity F+ -> F0 at the next encounter.
     """
 
     p_det = float(p_det)

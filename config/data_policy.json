@@ -7,8 +7,8 @@
     "velocity_specific_adjustments": "none",
     "out_of_range_action": "error",
     "applies_to": [
-      "Figure 4 Pdet",
-      "Figure 7(a) Pcap",
+      "Detachment probability Pdet",
+      "Capture probability Pcap",
       "sequential final F- fractions",
       "experimental comparison"
     ]

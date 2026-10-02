@@ -1,4 +1,4 @@
-# Revision run jctc-ct-2026-013017__C9_one_site__production__h4__v0p3
+# Revision run pra-lif-tddft__C9_one_site__production__h4__v0p3
 # F-/LiF(100), fixed target with an Ehrenfest projectile
 # cluster_model=C9_one_site, variant=production
 FromScratch = no

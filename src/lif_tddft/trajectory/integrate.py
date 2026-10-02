@@ -40,7 +40,7 @@ def integrate_grazing_trajectory(
     steps: int,
     normal_force: Callable[[float, float], float],
 ) -> dict[str, np.ndarray]:
-    """Integrate manuscript Sec. 2.6 trajectories.
+    """Integrate grazing trajectories under the supplied physical force.
 
     Parallel motion is uniform, while the surface-normal coordinate follows
     velocity Verlet under the velocity-specific force surface ``Fz_v(x,z)``.

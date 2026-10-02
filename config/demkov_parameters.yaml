@@ -9,10 +9,10 @@ parameters:
   lattice_constant_bohr: 7.592
 equations:
   gamma: "Ep=d_EF; Et=d_EF+V_Mad; gamma=(sqrt(2*Et)+sqrt(2*Ep))/2, with energies converted to Hartree"
-  capture_probability: "SI Eq. S14: 0.5*sech(pi*(DeltaE+v_parallel^2/2)/(2*gamma*v_parallel))^2"
-  energy_defect: "SI Eq. S15"
-  mott_littleton: "SI Eq. S16"
-  dynamic_image: "SI Eq. S17"
+  capture_probability: "the Demkov capture formula: 0.5*sech(pi*(DeltaE+v_parallel^2/2)/(2*gamma*v_parallel))^2"
+  energy_defect: "the energy-defect formula"
+  mott_littleton: "the Mott-Littleton polarization formula"
+  dynamic_image: "the dynamic-image interaction formula"
 sources:
   gamma:
     value_origin: "derived at runtime from the declared Et and Ep inputs"

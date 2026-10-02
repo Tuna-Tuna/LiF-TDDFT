@@ -50,7 +50,7 @@ def paired_projectile_mean_loss(
     *,
     entrance_index: int = 0,
 ) -> np.ndarray:
-    """Return the paired-reference loss of main Eq. (5) / SI Eq. (S3a)."""
+    """Return the difference between interacting and isolated population loss."""
 
     interacting = np.asarray(interacting_population, dtype=float)
     isolated = np.asarray(aligned_isolated_population, dtype=float)
@@ -69,7 +69,7 @@ def surface_corrected_local_deficit(
     *,
     entrance_index: int = 0,
 ) -> np.ndarray:
-    """Apply the moving static-surface correction of SI Eq. (S3b)."""
+    """Apply the moving static-surface correction of the moving static-surface correction."""
 
     loss = np.asarray(paired_loss, dtype=float)
     surface = np.asarray(static_surface_population, dtype=float)

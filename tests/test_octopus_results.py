@@ -74,15 +74,24 @@ class OctopusResultTests(unittest.TestCase):
             for loaded in axes:
                 np.testing.assert_allclose(loaded, axis)
 
-    def test_reference_alignment_is_bounded_and_unscaled(self):
+    def test_reference_alignment_selects_recorded_samples_only(self):
         source_x = np.asarray([-2.0, -1.0, 0.0])
         source_population = np.asarray([8.0, 7.8, 7.5])
         aligned = align_isolated_population(
-            np.asarray([-1.5, -0.5]), source_x, source_population
+            np.asarray([0.0, -2.0, -1.0]), source_x, source_population
         )
-        np.testing.assert_allclose(aligned, [7.9, 7.65])
-        with self.assertRaisesRegex(ValueError, "outside"):
-            align_isolated_population(np.asarray([0.1]), source_x, source_population)
+        np.testing.assert_array_equal(aligned, [7.5, 8.0, 7.8])
+        for position in (-1.5, -0.5, 0.1):
+            with self.subTest(position=position), self.assertRaisesRegex(ValueError, "recorded"):
+                align_isolated_population(np.asarray([position]), source_x, source_population)
+
+    def test_reference_alignment_rejects_missing_and_ambiguous_samples(self):
+        with self.assertRaisesRegex(ValueError, "finite"):
+            align_isolated_population(np.asarray([0.0]), np.asarray([0.0]), np.asarray([np.nan]))
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            align_isolated_population(np.asarray([0.0]), np.asarray([-1e-11, 1e-11]), np.asarray([7.0, 8.0]))
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            align_isolated_population(np.asarray([0.0]), np.asarray([0.0, 1e-11]), np.asarray([7.0, 8.0]))
 
     def test_paired_plateau_comes_from_density_frames(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -1,71 +1,66 @@
-# Reproducibility workflow
+# Reproduction workflow
 
-## 1. Generate RT-TDDFT run plans
+## Calculate source data
 
-`config/campaign_revision.yaml` expands to 8 heights x 6 velocities x 2 paired
-variants = 96 independent histories. Each target velocity starts from its own
-ground state and segmented acceleration history. Generated `runs/` data are
-ignored by Git because full NetCDF outputs are very large.
+`config/campaign_revision.yaml` defines 8 heights, 6 velocities, and paired
+interacting/isolated-projectile variants. Generate the run plans, supply the
+actual production pseudopotentials, and complete each ground-state,
+acceleration, and Ehrenfest stage. Surface atoms remain fixed; the projectile
+is movable. Dry-run plan validation is not a completed calculation.
 
-LiF coordinates use the optional fifth `%Coordinates` column to mark all
-surface atoms immobile and the projectile movable. Ground-state stages use
-`MoveIons=no`; ramp and production stages use Ehrenfest dynamics with
-`MoveIons=yes` and `IonsConstantVelocity=no`.
+## Extract recorded populations
 
-## 2. Produce the mean-loss map
+`scripts/extract_tddft_mean_loss.py` reads density NetCDF frames and projectile
+coordinates directly from completed runs. Supply a population radius justified
+by a radius-convergence calculation. The isolated population must have a
+recorded sample at every required interacting-projectile position. Matching
+uses an absolute coordinate tolerance of 1e-10 only for serialization precision;
+it never generates intermediate values. Missing/ambiguous matches fail.
 
-Run `scripts/extract_tddft_mean_loss.py` on the completed campaign directory.
-The production extractor reads each Octopus `td.*/density*.ncdf` frame and the
-recorded instantaneous projectile coordinate from `td.general/coordinates`.
-It computes projectile-centered populations for the interacting and isolated
-projectile runs and applies main Eq. (5) / SI Eq. (S3a) after bounded
-position-alignment. The selected population radius must be supplied explicitly
-and justified by the radius-convergence calculation.
+The paired population changes yield a plateau mean loss at each calculated
+height/velocity node. Missing grid nodes and nonfinite values fail. Neither
+electron counts nor reference populations are interpolated.
 
-No out-of-domain node may be silently extrapolated. Local source tables must
-label any continuation boundary explicitly. Numerical source tables and their
-exported figure values are excluded from Git.
+## Obtain detachment probabilities
 
-Probability amplitudes are never normalized, rescaled, clipped, or adjusted
-by velocity. `scripts/export_figure4_probabilities.py` reads the direct TDDFT
-grid, applies only the manuscript sector mapping `Pdet=1-P0`, and writes the
-Figure 4 nodes. In particular, `v=0.10` has no special branch. Both the
-extracted grid and generated table stay outside Git. In the current manuscript
-Figure 4 is `Pdet`, not capture.
+`scripts/export_detachment_probabilities.py` applies the declared sector
+mapping to each calculated mean-loss node and exports `Pdet=1-P0` unchanged.
+`RTDetachment` separately interpolates the resulting detachment-sector
+probabilities inside the complete grid. It rejects all out-of-domain queries.
+Mapping the nodes before interpolation is intentional: where a cell spans
+the one-electron boundary, this differs from interpolating mean loss and then
+applying the piecewise mapping. No mean-loss interpolation is available.
 
-## 3. Reconstruct trajectories and encounters
+## Evaluate the physical models
 
-Use `integrate_grazing_trajectory` for uniform parallel motion and calculated
-normal motion. `trajectory.events.identify_events` creates a chronological
-encounter table. A production table for `compute_sequential_yields.py` must
-contain `trajectory_id,event_index,event_time,surface_height,v_parallel,energy_defect_au`.
-The detachment mean loss is evaluated from the extracted TDDFT grid inside the
-yield program; it must not be supplied as a manually prepared event column.
+Compute the electrostatic, Mott-Littleton, and dynamic-image energy terms at
+the requested coordinates. The Demkov formula evaluates capture directly;
+it is not interpolated. The capture parameter is derived from binding energies
+in `config/demkov_parameters.yaml`. SciPy supplies the Bessel function; absence
+of that dependency is an error rather than a reason to use a substitute formula.
 
-## 4. Calculate capture and propagate yields
+Trajectory integration accepts a physical-force callback; no force-grid spline
+is supplied. Feed calculated encounter coordinates, velocities, and energy
+defects to `scripts/compute_sequential_yields.py` together with the directly
+extracted TDDFT grid. Propagation uses chronological F-/F0/F+ transitions.
 
-Evaluate SI Eqs. (S15)-(S17), then Eq. (S14). Invoke
-`compute_sequential_yields.py` with `--tddft-grid` pointing to the direct
-Octopus extraction. Map each mean loss to
-`(P0,P1,P2)` and propagate F-/F0/F+ states from neutral F. No experimental
-normalization, scale factor, or fit parameter is applied.
+Physical fitting analyses remain available. The potential-fit script requires
+valid density-derived initialization and successful fit-quality checks. The
+polarizability script requires recorded grid metadata or explicit configuration;
+it does not supply a guessed spacing or origin when metadata are missing.
+The density-comparison script requires matching native grids and rejects missing
+density values rather than filling them with zero.
 
-Saved MATLAB workspaces and arrays extracted from them are non-production
-regression material. They cannot supply the TDDFT grid or the event mean loss.
+## Verify
 
-For the capture panel, `scripts/compute_capture_probability_table.py` evaluates
-every row directly with Eq. (S14). The current manuscript labels this quantity
-as Figure 7(a) `Pcap`; there is no `v=0.10` multiplier or post-computation
-amplitude correction. The loader derives
-`gamma=(sqrt(2*Et)+sqrt(2*Ep))/2` from the declared binding-energy inputs,
-using `Ep=d_EF` and `Et=d_EF+V_Mad` after conversion to Hartree. It rejects a
-directly configured or saved `gamma`/`gama` value.
+Run `python -m unittest discover -s tests -v` and
+`python scripts/audit_repository_payload.py`. Use `scripts/audit_no_scaling.py`
+to compare exported detachment nodes to their calculated sources; optionally
+pass `--capture-table` for direct formula verification of a capture table.
 
-## 5. Verify
+Numerical source data and generated outputs remain outside Git. Preserve
+input/output hashes and run provenance with local results. The repository
+does not synthesize missing production data.
 
-Run the unit suite and `scripts/audit_repository_payload.py` before publishing.
-With the required local numerical archives present, also run
-`scripts/audit_no_scaling.py` and `scripts/audit_manuscript_consistency.py`.
-Generated audit outputs remain ignored by Git. The formula audit is expected
-to report a blocker for the archived capture array until the paper and
-regenerated Figure 7 source data share one formula.
+For the native-grid density checks in MATLAB or Octave, run
+`addpath('tests'); test_native_grids` from the repository root.

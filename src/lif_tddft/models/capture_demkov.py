@@ -1,4 +1,4 @@
-"""Nonresonant Demkov capture of Supporting Information Eq. (S14)."""
+"""Nonresonant Demkov electron capture."""
 
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ class DemkovCapture:
 
         ``energy_defect_au`` and ``v_parallel`` are mandatory event fields.
         Surface height enters only through the independently evaluated energy
-        defect (SI Eqs. S15--S17); no additional height envelope is permitted.
+        defect; no additional height envelope is permitted.
         """
 
         energy_defect = float(event["energy_defect_au"])
@@ -83,7 +83,7 @@ class DemkovCapture:
         return 0.5 * self._sech_squared(argument)
 
     def sensitivity(self, event: dict, relative_span: float = 0.2) -> dict[str, tuple[float, float]]:
-        """Re-evaluate S14 at alternate physical inputs for diagnostics only.
+        """Re-evaluate the capture formula at alternate physical inputs for diagnostics only.
 
         This method does not multiply, normalize, or replace a computed
         production probability and is not called by figure or yield exports.

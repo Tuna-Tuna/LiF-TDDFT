@@ -78,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
         histories[trajectory_id] = result["history"]
     payload = {
         "schema_version": 1,
-        "equations": ["manuscript Sec. 2.6", "main Eq. 20", "SI Eq. S14"],
+        "equations": ["the detachment-sector model", "ordered charge-state propagation", "the Demkov capture formula"],
         "data_policy": {
             "normalization": "none",
             "scale_factor": 1.0,

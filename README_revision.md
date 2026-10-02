@@ -1,5 +1,3 @@
-# Revision README
+# Workflow documentation
 
-The authoritative revision documentation is [README.md](README.md).  This
-compatibility entry is kept because the implementation report names
-`README_revision.md` as an acceptance artifact.
+See [README.md](README.md) for calculation and data-handling instructions.

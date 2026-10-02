@@ -1,9 +1,8 @@
 # Pseudopotentials
 
-Historical inputs expect files named `Li.oncvpsp.psp8` and
-`F.oncvpsp.psp8`. The exact production files and checksums were not supplied,
-and the filename/family indication is inconsistent with the manuscript's
-Troullier-Martins description. Do not substitute generic files. Before public
-release, the authors must identify the actual production pseudopotentials,
-reconcile the manuscript wording, and record their SHA-256 hashes. The runner
-records those hashes in each completed run's provenance file.
+The inputs expect files named `Li.oncvpsp.psp8` and `F.oncvpsp.psp8`.
+The exact production files and their checksums are not distributed here.
+Supply the actual calculation pseudopotentials, verify their family and input
+settings, and record their SHA-256 hashes. Generic same-element files are not
+substitutes for the production files. The runner records the supplied hashes
+in each completed run's provenance file.

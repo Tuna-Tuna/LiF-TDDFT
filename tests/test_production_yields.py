@@ -14,7 +14,7 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 FIGURE_SPEC = importlib.util.spec_from_file_location(
-    "export_figure4_probabilities", ROOT / "scripts" / "export_figure4_probabilities.py"
+    "export_detachment_probabilities", ROOT / "scripts" / "export_detachment_probabilities.py"
 )
 assert FIGURE_SPEC is not None and FIGURE_SPEC.loader is not None
 FIGURE_MODULE = importlib.util.module_from_spec(FIGURE_SPEC)
@@ -64,9 +64,9 @@ class ProductionYieldSourceTests(unittest.TestCase):
             }
             model, loaded = MODULE.load_mean_loss_grid(self._write(directory, payload))
             self.assertEqual(loaded["source_kind"], "octopus_rt_tddft_density")
-            self.assertAlmostEqual(model.mean_loss({"surface_height": 2.5, "v_parallel": 0.15}), 0.2)
+            self.assertAlmostEqual(model.probability({"surface_height": 2.5, "v_parallel": 0.15}), 0.2)
 
-    def test_figure4_uses_sector_mapping_without_scaling_branch(self):
+    def test_detachment_export_uses_sector_mapping_without_scaling_branch(self):
         self.assertEqual(FIGURE_MODULE.pdet_from_mean_loss(0.25), 0.25)
         self.assertEqual(FIGURE_MODULE.pdet_from_mean_loss(1.25), 1.0)
 

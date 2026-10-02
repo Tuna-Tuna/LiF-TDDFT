@@ -14,7 +14,7 @@
 %    1. Import density from Octopus NetCDF (convert e/Å³ → e/Bohr³)
 %    2. Locate surface F⁻ ion in each environment (auto-detection)
 %    3. Align z-coordinates for fair comparison
-%    4. Interpolate both densities onto a common grid centered at F⁻
+%    4. Compare recorded, matching density grids centered at F⁻
 %    5. Spherical cutoff at R_cut = 2.8 au
 %    6. Compute 2D xy-slices, radial profile Δρ(r), z-axis profile Δρ(z)
 %    7. Compute charge center of mass (density-weighted centroid)
@@ -40,7 +40,6 @@
 %    - Octopus static/density.ncdf NetCDF files
 %
 %  Octave USERS: ensure netcdf package is loaded (see octave_startup.m).
-%    griddedInterpolant with cell array grids is supported in Octave >= 4.4.
 %
 %  REFERENCES:
 %    Project: "Occupied-Space Constraints and Finite-Time Recovery in
@@ -66,7 +65,6 @@ slab_spacing_au = 0.20;
 % Analysis parameters
 cutoff_radius = 2.8;     % au, spherical cutoff for density comparison
 box_half_width = 3.5;    % au, local extraction box half-width
-uniform_grid_step = 0.1; % au, unified grid spacing
 
 % Crystal geometry (LiF rock-salt, surface orientation)
 lattice_constant = 3.7958;  % au
@@ -217,7 +215,7 @@ fprintf('Slab   F nucleus z: %.4f au\n', zFs);
 fprintf('z-direction offset: %.4f au\n', zFc - zFs);
 
 %% =========================================================================
-%%  Part C: Extract local regions & interpolate to unified grid
+%%  Part C: Extract local regions on matching recorded grids
 %% =========================================================================
 % --- Cluster local ---
 ix_c = find(cluster_grid_x >= xFc - box_half_width & cluster_grid_x <= xFc + box_half_width);
@@ -235,26 +233,14 @@ iz_s = find(slab_grid_z >= zFs - box_half_width & slab_grid_z <= zFs + box_half_
 density_slab_local = density_slab(iz_s, iy_s, ix_s);
 x_s_loc = slab_grid_x(ix_s); y_s_loc = slab_grid_y(iy_s); z_s_loc = slab_grid_z(iz_s);
 
-% --- Unified grid (relative coords, F atom as origin) ---
-x_uni = -box_half_width : uniform_grid_step : box_half_width;
-y_uni = -box_half_width : uniform_grid_step : box_half_width;
-z_uni = -box_half_width : uniform_grid_step : box_half_width;
-
-% --- Core: permute [2,3,1] to convert (z,y,x) -> (y,x,z) ---
-Vc = permute(density_cluster_local, [2, 3, 1]);   % [Ny, Nx, Nz]
-Vs = permute(density_slab_local, [2, 3, 1]);      % [Ny, Nx, Nz]
-
-% Cluster interpolation
-Fc = griddedInterpolant({y_c_loc - yFc, x_c_loc - xFc, z_c_loc - zFc}, Vc, 'linear');
-Fc.ExtrapolationMethod = 'none';
-density_cluster_uniform = Fc({y_uni, x_uni, z_uni});
-density_cluster_uniform(isnan(density_cluster_uniform)) = 0;
-
-% Slab interpolation
-Fs = griddedInterpolant({y_s_loc - yFs, x_s_loc - xFs, z_s_loc - zFs}, Vs, 'linear');
-Fs.ExtrapolationMethod = 'none';
-density_slab_uniform = Fs({y_uni, x_uni, z_uni});
-density_slab_uniform(isnan(density_slab_uniform)) = 0;
+% Compare only existing samples. Grids must coincide after centering.
+x_uni = x_c_loc - xFc;
+y_uni = y_c_loc - yFc;
+z_uni = z_c_loc - zFc;
+source_axes = {x_s_loc - xFs, y_s_loc - yFs, z_s_loc - zFs};
+target_axes = {x_uni, y_uni, z_uni};
+[density_cluster_uniform, density_slab_uniform, cell_volume] = ...
+    compare_on_native_grids(density_cluster_local, density_slab_local, target_axes, source_axes);
 
 fprintf('\nUnified grid dimensions: [%d, %d, %d]\n', length(y_uni), length(x_uni), length(z_uni));
 
@@ -356,8 +342,8 @@ mask_z_pos = z_uni > 0 & z_uni <= cutoff_radius;
 mask_z_neg = z_uni < 0 & abs(z_uni) <= cutoff_radius;
 
 if nnz(mask_z_pos) > 0 && nnz(mask_z_neg) > 0
-    delta_Q_pos = sum(density_diff_z(mask_z_pos), 'omitnan') * (uniform_grid_step^3);
-    delta_Q_neg = sum(density_diff_z(mask_z_neg), 'omitnan') * (uniform_grid_step^3);
+    delta_Q_pos = sum(density_diff_z(mask_z_pos), 'omitnan') * cell_volume;
+    delta_Q_neg = sum(density_diff_z(mask_z_neg), 'omitnan') * cell_volume;
     fprintf('\n=== z-axis Difference Diagnostics ===\n');
     fprintf('+z hemisphere (vacuum side) net charge diff: %+.4e e\n', delta_Q_pos);
     fprintf('-z hemisphere (substrate side) net charge diff: %+.4e e\n', delta_Q_neg);
@@ -442,16 +428,16 @@ fprintf('Saved: charge_center_summary.txt\n');
 density_diff_z_step = z_uni(2) - z_uni(1);
 
 % +z hemisphere (vacuum side) cumulative
-delta_Q_z_pos = sum(density_diff_z(mask_z_pos), 'omitnan') * (uniform_grid_step^3);  % e
+delta_Q_z_pos = sum(density_diff_z(mask_z_pos), 'omitnan') * cell_volume;  % e
 
 % -z hemisphere (substrate side) cumulative
-delta_Q_z_neg = sum(density_diff_z(mask_z_neg), 'omitnan') * (uniform_grid_step^3);  % e
+delta_Q_z_neg = sum(density_diff_z(mask_z_neg), 'omitnan') * cell_volume;  % e
 
 fprintf('+z hemisphere (vacuum side) net charge diff: %+.4e e\n', delta_Q_z_pos);
 fprintf('-z hemisphere (substrate side) net charge diff: %+.4e e\n', delta_Q_z_neg);
 
 % Cumulative curve
-delta_Q_z_cum = cumsum(density_diff_z(~isnan(density_diff_z))) * (uniform_grid_step^3);
+delta_Q_z_cum = cumsum(density_diff_z(~isnan(density_diff_z))) * cell_volume;
 z_valid = z_uni(~isnan(density_diff_z));
 
 % Output cumulative data

@@ -62,7 +62,6 @@ cube_minus = "Z:\version1.5\LiF\v1.3\\polarize-\\static\\density.ncdf";
 inp_dir = "Z:\version1.5\LiF\v1.3\\";
 
 % Analysis parameters
-manual_spacing  = 0.1890;   % au, fallback grid spacing
 E_field         = 0.002;    % au, applied electric field (z-direction)
 cutoff_radius   = 3.0;      % au, spherical integration cutoff
 
@@ -94,22 +93,11 @@ for i = 1:length(inp_candidates)
     end
 end
 if inp_path == ""
-    fprintf("  Warning: No standard inp file found, using manual fallback parameters...\n");
-    use_manual_inp = true;
-else
-    use_manual_inp = false;
+    error('The calculation inp file is required; missing parameters are not supplied automatically.');
 end
 
 %% ---- Parse inp parameters & variables ----
-fprintf("=== Reading Octopus input parameters ===\n");
-if ~use_manual_inp
-    [vars, inp] = parse_octopus_inp_v7(inp_path);
-else
-    vars = struct();
-    inp = struct('UnitsInput','atomic','UnitsOutput','atomic',...
-                 'Spacing',[],'SpacingUnit','','BoxShape','parallelepiped',...
-                 'Lsize',[],'Radius',[],'Atoms',struct('Symbol',{},'Coords',{}));
-end
+[vars, inp] = parse_octopus_inp_v7(inp_path);
 fprintf("  UnitsInput  : %s\n", inp.UnitsInput);
 fprintf("  UnitsOutput : %s\n", inp.UnitsOutput);
 fprintf("  BoxShape    : %s\n", inp.BoxShape);
@@ -134,12 +122,12 @@ try
     nc_has_coords = true;
 catch
     nc_has_coords = false;
-    fprintf("  No coordinate variables x/y/z in NetCDF, relying on inp or manual fallback.\n");
+    fprintf("  No coordinate variables x/y/z in NetCDF, requiring the recorded inp grid parameters.\n");
 end
 
 if nc_has_coords
     if length(x_nc) ~= nx || length(y_nc) ~= ny || length(z_nc) ~= nz
-        warning('Coordinate variable lengths do not match density dimensions! Check file.');
+        error('Coordinate variable lengths do not match density dimensions.');
     end
     nc_x = x_nc(:)';
     nc_y = y_nc(:)';
@@ -194,8 +182,7 @@ elseif nc_has_coords && length(nc_x) > 1
     dz = abs(nc_z(2) - nc_z(1));
     fprintf("  Spacing inferred from NetCDF coords: dx=%.4f, dy=%.4f, dz=%.4f au\n", dx, dy, dz);
 else
-    dx = manual_spacing; dy = manual_spacing; dz = manual_spacing;
-    fprintf("  Using manual fallback Spacing: %.4f au\n", dx);
+    error('Grid spacing must be present in inp or recorded NetCDF coordinates.');
 end
 dV = dx * dy * dz;
 fprintf("  Final dV = %.6f au^3\n", dV);
@@ -214,7 +201,7 @@ elseif contains(inp.BoxShape, "parallelepiped") || isempty(inp.BoxShape)
     elseif ~isempty(inp.Lsize) && isfinite(inp.Lsize(1))
         L = [inp.Lsize(1), inp.Lsize(1), inp.Lsize(1)];
     else
-        L = [0,0,0];
+        error('A recorded Lsize is required when coordinate variables are absent.');
     end
     origin = -L/2;
     fprintf("  parallelepiped: origin = -Lsize/2 = [%.4f, %.4f, %.4f] au\n", origin);
@@ -229,12 +216,10 @@ elseif contains(inp.BoxShape, "sphere")
             fprintf("  Warning: Radius inconsistent with grid x range!\n");
         end
     else
-        origin = -[(nx-1)/2*dx, (ny-1)/2*dy, (nz-1)/2*dz];
-        fprintf("  sphere mode: auto-inferred origin = [%.4f, %.4f, %.4f] au\n", origin);
+        error('A recorded Radius is required when coordinate variables are absent.');
     end
 else
-    origin = [0, 0, 0];
-    warning("Unknown BoxShape, origin set to [0,0,0]");
+    error('Unknown BoxShape: supply the recorded grid coordinates or explicit origin.');
 end
 
 %% ---- Locate target F⁻ ion ----

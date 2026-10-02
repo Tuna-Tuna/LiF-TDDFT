@@ -5,7 +5,7 @@
 %   This script calculates the electrostatic potential energy experienced
 %   by a point-charge probe (e.g., an electron) at positions (x, y) and
 %   heights z above a discrete LiF crystal slab. It serves as Supporting
-%   Information for the JCTC paper:
+%   Information for the LiF scattering study:
 %
 %     "Occupied-Space Constraints and Finite-Time Recovery in
 %      Electron Detachment during F-/LiF(100) Scattering"

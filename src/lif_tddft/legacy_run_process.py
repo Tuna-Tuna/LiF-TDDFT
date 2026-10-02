@@ -8,7 +8,6 @@ from typing import Any
 
 import numpy as np
 
-from .analysis.interpolation import BoundedGridInterpolator, OutOfDomainError
 from .models.charge_state import propagate_ordered_events
 from .provenance import sha256_file
 from .trajectory.wgeom import database_coverage
@@ -70,9 +69,6 @@ def _legacy_events(arrays: dict[str, np.ndarray], velocity_index: int) -> list[d
 def replay(directory: str | Path) -> dict[str, Any]:
     loaded = load_extracted(directory)
     arrays = loaded["arrays"]
-    interpolator = BoundedGridInterpolator(
-        arrays["zcal"], arrays["vcal"], arrays["result_loss"], value_bounds=None
-    )
     summaries = []
     all_events: list[dict[str, Any]] = []
     for velocity_index, velocity in enumerate(arrays["vcal"]):
@@ -84,20 +80,9 @@ def replay(directory: str | Path) -> dict[str, Any]:
             lambda event: event["_p_cap"],
             initial_state="F_neutral",
         )
-        interpolation_errors = []
-        out_of_domain = 0
-        below_domain = 0
-        above_domain = 0
-        for event in events:
-            height = event["surface_height"]
-            try:
-                estimated = interpolator(height, float(velocity))
-                interpolation_errors.append(estimated - event["_p_det"])
-            except OutOfDomainError:
-                out_of_domain += 1
-                below_domain += int(height < arrays["zcal"][0])
-                above_domain += int(height > arrays["zcal"][-1])
-        errors = np.asarray(interpolation_errors, dtype=float)
+        below_domain = sum(event["surface_height"] < arrays["zcal"][0] for event in events)
+        above_domain = sum(event["surface_height"] > arrays["zcal"][-1] for event in events)
+        out_of_domain = below_domain + above_domain
         saved_final = float(arrays["last_non_zero"][velocity_index])
         python_final = float(propagated["yield_final_hybrid"])
         summaries.append(
@@ -110,7 +95,6 @@ def replay(directory: str | Path) -> dict[str, Any]:
                 "below_domain_events": below_domain,
                 "above_domain_events": above_domain,
                 "td_database_coverage_fraction": (len(events) - out_of_domain) / len(events),
-                "bounded_interpolation_rmse_in_domain": float(np.sqrt(np.mean(errors**2))) if errors.size else None,
                 "matlab_final_yield": saved_final,
                 "python_replayed_final_yield": python_final,
                 "replay_absolute_error": abs(python_final - saved_final),
@@ -123,16 +107,16 @@ def replay(directory: str | Path) -> dict[str, Any]:
         (float(arrays["vcal"][0]), float(arrays["vcal"][-1])),
     )
     experiment = np.asarray(arrays["expe"], dtype=float)
-    in_velocity_range = (
-        (experiment[:, 0] >= arrays["vcal"][0])
-        & (experiment[:, 0] <= arrays["vcal"][-1])
-    )
-    theory_at_experiment = np.interp(
-        experiment[in_velocity_range, 0], arrays["vcal"], arrays["last_non_zero"]
-    )
-    experiment_rmse = float(
-        np.sqrt(np.mean((theory_at_experiment - experiment[in_velocity_range, 1]) ** 2))
-    )
+    differences = []
+    matched_points = 0
+    for velocity, observed, *_ in experiment:
+        matches = np.flatnonzero(np.isclose(arrays["vcal"], velocity, rtol=0, atol=1e-12))
+        if matches.size > 1:
+            raise ValueError("ambiguous calculated velocity in experimental comparison")
+        if matches.size == 1:
+            differences.append(float(arrays["last_non_zero"][matches[0]]) - float(observed))
+            matched_points += 1
+    experiment_rmse = float(np.sqrt(np.mean(np.square(differences)))) if differences else None
     source_path = Path(loaded["manifest"]["source_mat"])
     return {
         "schema_version": 1,
@@ -140,13 +124,14 @@ def replay(directory: str | Path) -> dict[str, Any]:
         "source_mat_sha256": sha256_file(source_path) if source_path.is_file() else None,
         "velocity_summaries": summaries,
         "event_weight_coverage": coverage,
-        "experiment_points_in_velocity_range": int(in_velocity_range.sum()),
+        "experiment_points_at_calculated_velocities": matched_points,
+        "experiment_points_unmatched": int(len(experiment) - matched_points),
         "unscaled_theory_experiment_rmse": experiment_rmse,
         "limitations": [
-            "Saved zPcapture is a pre-S14-contract capture array used only for regression.",
+            "Saved capture arrays are used only to replay the supplied results.",
             "Legacy result_loss values are audited unchanged; Python does not clip or rescale them.",
             "Saved event arrays do not contain normal velocity; v_perpendicular is unavailable.",
-            "The Python database audit uses bounded bilinear interpolation; MATLAB used makima and extrapolated.",
-            "Out-of-domain events are reported and excluded from interpolation-error statistics.",
+            "Only supplied event probabilities are replayed; no missing values are generated.",
+            "Experimental comparison uses matching calculated velocities only; unmatched points are reported.",
         ],
     }

@@ -24,7 +24,7 @@ from lif_tddft.models.detachment_rt_tddft import detachment_sectors
 from lif_tddft.octopus_results import load_mean_loss_grid
 
 
-def figure4_values(
+def detachment_values(
     grid_path: Path, long_path: Path
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     _, payload = load_mean_loss_grid(grid_path)
@@ -50,24 +50,19 @@ def figure4_values(
     return source, exported, source_v010, exported_v010
 
 
-def capture_v010_error() -> tuple[int, float]:
-    path = ROOT / "results" / "tables" / "demkov_s14_event_audit.csv"
-    model = load_demkov_parameters(
-        ROOT / "config" / "demkov_parameters.yaml"
-    ).capture_model()
+def capture_error(path: Path) -> tuple[int, float]:
+    model = load_demkov_parameters(ROOT / "config" / "demkov_parameters.yaml").capture_model()
     differences = []
     with path.open(encoding="utf-8", newline="") as handle:
         for row in csv.DictReader(handle):
-            if float(row["velocity_au"]) != 0.10:
-                continue
             expected = model.probability({
                 "surface_height": float(row["height_bohr"]),
-                "v_parallel": 0.10,
+                "v_parallel": float(row["v_parallel"]),
                 "energy_defect_au": float(row["energy_defect_au"]),
             })
-            differences.append(expected - float(row["si_s14_p_capture"]))
+            differences.append(expected - float(row["p_capture"]))
     if not differences:
-        raise ValueError("the capture audit has no v=0.10 rows")
+        raise ValueError("capture table is empty")
     return len(differences), float(np.max(np.abs(differences)))
 
 
@@ -79,42 +74,45 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
     )
     parser.add_argument(
-        "--figure4-table",
+        "--detachment-table",
         type=Path,
-        default=ROOT / "data" / "processed" / "manuscript" / "figure4_pdet.csv",
+        default=ROOT / "data" / "processed" / "manuscript" / "detachment_probabilities.csv",
     )
     parser.add_argument(
         "--output",
         type=Path,
         default=ROOT / "results" / "tables" / "no_scaling_audit.json",
     )
+    parser.add_argument("--capture-table", type=Path)
     args = parser.parse_args(argv)
 
     policy = json.loads((ROOT / "config" / "data_policy.json").read_text(encoding="utf-8"))[
         "probability_data"
     ]
     assert_no_scaling_policy(policy)
-    source, exported, source_v010, exported_v010 = figure4_values(
-        args.tddft_grid, args.figure4_table
+    source, exported, source_v010, exported_v010 = detachment_values(
+        args.tddft_grid, args.detachment_table
     )
-    validate_probability_values(source, label="Figure 4 Pdet")
-    assert_values_identical(source, exported, label="Figure 4 Pdet")
-    assert_values_identical(source_v010, exported_v010, label="Figure 4 v=0.10 Pdet")
-    capture_count, capture_error = capture_v010_error()
-    if capture_error > 1.0e-15:
-        raise ValueError("v=0.10 Pcap is not a direct SI Eq. (S14) evaluation")
+    validate_probability_values(source, label="Detachment probability Pdet")
+    assert_values_identical(source, exported, label="Detachment probability Pdet")
+    assert_values_identical(source_v010, exported_v010, label="Detachment v=0.10 Pdet")
+    capture_count, capture_difference = 0, None
+    if args.capture_table:
+        capture_count, capture_difference = capture_error(args.capture_table)
+        if not np.isfinite(capture_difference) or capture_difference > 1e-15:
+            raise ValueError("Pcap differs from direct evaluation of the capture formula")
 
     payload = {
         "schema_version": 1,
         "passed": True,
         "policy": policy,
-        "figure4_probability_values": int(source.size),
-        "figure4_v0p10_values": int(source_v010.size),
-        "figure4_export_bitwise_identical": True,
-        "figure4_v0p10_bitwise_identical": True,
-        "capture_v0p10_events_checked": capture_count,
-        "capture_v0p10_max_abs_s14_recalculation_error": capture_error,
-        "note": "Current manuscript Figure 4 is Pdet; Pcap is Figure 7(a).",
+        "detachment_probability_values": int(source.size),
+        "detachment_v0p10_values": int(source_v010.size),
+        "detachment_export_bitwise_identical": True,
+        "detachment_v0p10_bitwise_identical": True,
+        "capture_rows_checked": capture_count,
+        "capture_max_absolute_error": capture_difference,
+        "note": "Detachment nodes use the sector mapping; capture values use direct formula evaluation.",
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

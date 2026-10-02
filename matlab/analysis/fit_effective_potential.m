@@ -170,12 +170,13 @@ weights(radius_vec > 8.0) = 0.0;
 % Scalar objective function (compatible with older MATLAB)
 chi2 = @(g) sum(weights .* (potential_vec + const_eV * erf(g * radius_vec) ./ radius_vec).^2, 'all');
 
-% Initial guess: prefer tail Gaussian result (cleanest)
-gamma0 = 0.3;   % Å⁻¹, empirical initial guess
+% Initialize the optimizer from the calculated density diagnostics.
 if ~isnan(gamma_A_tail) && gamma_A_tail > 0.1 && gamma_A_tail < 2.0
     gamma0 = gamma_A_tail;
-elseif gamma_A_moment > 0.1 && gamma_A_moment < 2.0
+elseif isfinite(gamma_A_moment) && gamma_A_moment > 0.1 && gamma_A_moment < 2.0
     gamma0 = gamma_A_moment;
+else
+    error('No valid density-derived starting value for the potential fit.');
 end
 
 options = optimset('Display', 'off', 'MaxFunEvals', 1000, 'TolX', 1e-6);
@@ -191,20 +192,11 @@ fprintf('Method II (potential fit): γ = %.4f Å⁻¹ (%.4f Bohr⁻¹), RMSE=%.4
     gamma_A_fit, gamma_fit, RMSE_eV, R2);
 
 %% ---- 6. Validity check and recommended γ ----
-if gamma_fit > 2.0 || gamma_fit < 0.1 || R2 < 0.85
-    if ~isnan(gamma_tail)
-        gamma_recommended = gamma_tail;
-        gamma_A_rec = gamma_A_tail;
-        fprintf('[WARNING] Potential fit deviates from physical expectation, using tail Gaussian result\n');
-    else
-        gamma_recommended = gamma_fit;
-        gamma_A_rec = gamma_A_fit;
-        fprintf('[WARNING] Poor fit quality and no tail Gaussian result available, check data\n');
-    end
-else
-    gamma_recommended = gamma_fit;
-    gamma_A_rec = gamma_A_fit;
+if ~isfinite(gamma_fit) || ~isfinite(R2) || gamma_fit > 2.0 || gamma_fit < 0.1 || R2 < 0.85
+    error('Potential fit failed its quality criteria; no substitute parameter is selected.');
 end
+gamma_recommended = gamma_fit;
+gamma_A_rec = gamma_A_fit;
 
 %% ---- 7. Visualization ----
 figure('Position', [100 100 1500 500]);

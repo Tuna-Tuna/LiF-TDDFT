@@ -6,11 +6,11 @@ from .data_contract import (
     validate_probability_values,
 )
 from .forces import ForceSeries
-from .interpolation import BoundedGridInterpolator
+from .interpolation import DetachmentProbabilityInterpolator
 from .population import moving_sphere_population
 
 __all__ = [
-    "BoundedGridInterpolator",
+    "DetachmentProbabilityInterpolator",
     "ForceSeries",
     "assert_no_scaling_policy",
     "assert_values_identical",

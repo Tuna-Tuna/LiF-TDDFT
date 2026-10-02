@@ -7,7 +7,6 @@ import math
 ALLOWED_SOURCES = {
     "uncertainty_tddft_numerical",
     "uncertainty_cluster_size",
-    "uncertainty_force_interpolation",
     "uncertainty_trajectory_sampling",
     "uncertainty_demkov_model",
 }

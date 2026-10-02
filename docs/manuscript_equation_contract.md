@@ -23,6 +23,6 @@ neither out-of-domain values nor substitute estimates are generated.
 
 All model inputs use atomic units unless a field name specifies otherwise.
 Heights are bohr, velocities atomic units, energies Hartree, `gamma` inverse
-bohr, and polarizabilities bohr cubed. Statistical means and fitted physical
-parameters are computed from the supplied data, never used to fill missing
-production measurements or calculations.
+bohr, and polarizabilities bohr cubed. Statistical means are computed from the
+supplied data and are never used to fill missing production measurements or
+calculations. Model parameters and their sources are declared in the configuration.

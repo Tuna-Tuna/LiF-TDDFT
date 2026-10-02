@@ -14,9 +14,8 @@ charge-state propagation.
   capture probabilities, and final yields are not interpolated.
 - No data extrapolation, missing-node filling, or substitute numerical
   parameters are used. Missing inputs cause an error.
-- Physical models, numerical integration of their equations, and fitting to
-  available calculated data are retained. Failed fits do not substitute a
-  different estimated result. SciPy is required for special functions.
+- Physical equations are evaluated with the declared model parameters.
+  SciPy is required for special functions.
 - Probability amplitudes are not normalized, rescaled, or clipped.
 
 The comparison between full-electronic and point-charge calculations is a

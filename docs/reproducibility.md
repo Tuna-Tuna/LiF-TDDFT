@@ -44,10 +44,6 @@ is supplied. Feed calculated encounter coordinates, velocities, and energy
 defects to `scripts/compute_sequential_yields.py` together with the directly
 extracted TDDFT grid. Propagation uses chronological F-/F0/F+ transitions.
 
-Physical fitting analyses remain available. The potential-fit script requires
-valid density-derived initialization and successful fit-quality checks. The
-polarizability script requires recorded grid metadata or explicit configuration;
-it does not supply a guessed spacing or origin when metadata are missing.
 The density-comparison script requires matching native grids and rejects missing
 density values rather than filling them with zero.
 

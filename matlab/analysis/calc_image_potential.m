@@ -39,8 +39,6 @@ function image_potential = calc_image_potential(z_grid, velocity_list)
 %
 %   REFERENCES:
 %     - Echenique, P.M. & Pendry, J.B. J. Phys. C 8, 2936 (1975)
-%     - Wang et al., J. Chem. Theory Comput. (2026)
-%       "Occupied-Space Constraints and Finite-Time Recovery in Electron Detachment..."
 %
 %   DEPENDENCIES:
 %     - MATLAB (besselk for modified Bessel function K0)

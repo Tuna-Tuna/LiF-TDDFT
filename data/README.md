@@ -51,9 +51,9 @@ outputs and experimental comparison data.
 
 ### Dataset Organization
 
-The simulation was performed for the following parameter combinations:
+The final manuscript gives the following parameter ranges:
 
-**Surface heights (h, au):** 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 7.0, 10.0  
+**Surface heights (h, au):** 1.2 through 10.0; supply the actual calculated nodes.
 **Projectile velocities (v, au):** 0.10, 0.15, 0.20, 0.30, 0.40, 0.50  
 
 Data is organized as:
@@ -78,8 +78,8 @@ data/
 
 ## External Dependencies
 
-- **Pseudopotentials**: the inputs reference `Li.oncvpsp.psp8` and
-  `F.oncvpsp.psp8`. The actual production files and their checksums must be
+- **Pseudopotentials**: configure the actual Troullier-Martins Li and F
+  filenames. The actual production files and their checksums must be
   supplied and verified before calculation; they are not distributed here.
 - **Octopus code**: Version 16.0 or later from https://octopus-code.org
 

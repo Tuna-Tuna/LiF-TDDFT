@@ -1,28 +1,30 @@
-# Model definitions
-
-The definitions below identify implemented physical quantities without relying
-on manuscript-specific figure or equation numbering. A change in the physical
-model requires an explicit scientific justification.
+# Definitions aligned with the final PRA manuscript
 
 | Quantity | Implementation | Definition |
 | --- | --- | --- |
-| Paired mean loss | `octopus_results.extract_paired_plateau`, `analysis.population.paired_projectile_mean_loss` | Interacting minus isolated population change at matching recorded positions |
-| Surface-corrected deficit | `analysis.population.surface_corrected_local_deficit` | Adds the time-dependent moving static-surface correction |
-| Detachment sectors | `models.detachment_rt_tddft.detachment_sectors` | For `N<=1`, `(P0,P1,P2)=(1-N,N,0)`; for `1<N<2`, `(0,2-N,N-1)` |
-| Detachment interpolation | `models.detachment_rt_tddft.RTDetachment` | Map each calculated mean-loss node to sectors first; interpolate only those probabilities in-domain |
-| Charge-state propagation | `models.charge_state` | Chronological independent encounters; transient F+ returns to F0 at the next encounter |
-| Demkov capture | `models.capture_demkov.DemkovCapture` | `0.5*sech^2[pi*(DeltaE+v^2/2)/(2*gamma*v)]`, evaluated directly |
-| Capture parameter | `models.demkov_parameters` | `gamma=(sqrt(2*Et)+sqrt(2*Ep))/2`, `Ep=d_EF`, `Et=d_EF+V_Mad`, energies in Hartree |
-| Energy defect | `models.capture_energy` | Electrostatic lattice sums plus Mott-Littleton and dynamic-image terms |
-| Dynamic-image interaction | `models.capture_energy.dynamic_image_interaction` | `-Q/(pi*v)` times the K0-weighted real surface-response integral |
-| Trajectory | `trajectory.integrate.integrate_grazing_trajectory` | Uniform parallel motion and numerical integration of normal motion under the supplied physical force |
+| Local population | `analysis.spherical_weight`, `analysis.population` | Smooth spherical weight of Appendix B; R=3.5 Angstrom and half-width=0.3 Angstrom for the documented main analysis |
+| Reference alignment | `octopus_results.align_isolated_population` | Recorded matching positions only, retained by explicit author instruction; no reference interpolation |
+| Detachment | `models.detachment_rt_tddft` | Pdet=Ndet, strictly 0<=Ndet<=1; no clipping |
+| Detachment interpolation | `analysis.interpolation` | Shape-preserving piecewise cubic (PCHIP) in height at a recorded velocity; no extrapolation or velocity interpolation |
+| Charge propagation | `models.charge_state` | Eq. (10): f_next=(1-f)Pcap+f(1-Pdet), initially neutral |
+| Capture | `models.capture_demkov` | Eq. (9), with explicitly supplied gamma_c and energy defect |
+| Smooth transport | `analysis.moving_flux.smooth_outward_flux` | -integral[(j-nV) dot grad(w)] dV, with absorption separate |
+| Local flyby | `octopus_input`, `generate_inp_files` | Fixed surface, constant prescribed projectile velocity after each ramp increment |
+| Grazing trajectory | `trajectory.integrate` | Uniform parallel motion with numerical integration of the normal force |
 
-No probability scaling, clipping, experimental normalization, or additional
-capture height envelope is applied. Missing calculated data cause errors;
-neither out-of-domain values nor substitute estimates are generated.
+Appendix B contains the sentence “Reference populations and fluxes are
+interpolated along the actual abscissa.” The author explicitly requested
+that the existing recorded-sample matching implementation remain unchanged;
+this is a known difference from that sentence, not a claim of interpolation.
 
-All model inputs use atomic units unless a field name specifies otherwise.
-Heights are bohr, velocities atomic units, energies Hartree, `gamma` inverse
-bohr, and polarizabilities bohr cubed. Statistical means are computed from the
-supplied data and are never used to fill missing production measurements or
-calculations. Model parameters and their sources are declared in the configuration.
+The manuscript gives height and CAP ranges but not the complete height list,
+velocity-dependent CAP assignment, gamma_c value, or actual pseudopotential
+filenames. Those inputs are required explicitly. Unknown values are not derived
+from unrelated files, estimated or filled with guessed defaults.
+
+The peripheral potential gamma=0.566 is retained because Sec. II A gives it
+explicitly. It is distinct from the capture parameter gamma_c.
+
+The MATLAB image-potential algorithm is retained by author instruction. Only
+its two dielectric energies are changed to required arguments. This change
+does not repair the pre-existing matrix-dimension problem in its integration.

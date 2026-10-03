@@ -1,62 +1,64 @@
 # Reproduction workflow
 
-## Calculate source data
+## Supply the actual calculation inputs
 
-`config/campaign_revision.yaml` defines 8 heights, 6 velocities, and paired
-interacting/isolated-projectile variants. Generate the run plans, supply the
-actual production pseudopotentials, and complete each ground-state,
-acceleration, and Ehrenfest stage. Surface atoms remain fixed; the projectile
-is movable. Dry-run plan validation is not a completed calculation.
+Fill `heights_bohr` in `config/campaign_revision.yaml` with recorded calculation
+nodes in [1.2,10] bohr. Supply the CAP magnitude for each target velocity in
+the manuscript range [0.2,0.4], and actual Troullier-Martins pseudopotential
+filenames. The distribution deliberately leaves these fields unset where the
+final manuscript does not specify their values. Null fields fail before input
+generation. This configuration is not a complete numerical reproduction record.
 
-## Extract recorded populations
+The central active surface site is at x=0 and the projectile starts at +9
+Angstrom. The surface is fixed; ramp segments prescribe each step velocity,
+and the production stage maintains the target velocity. The timestep is
+0.0004 fs. The grid, box and CAP thickness are 0.1, 16 and 4 Angstrom.
 
-`scripts/extract_tddft_mean_loss.py` reads density NetCDF frames and projectile
-coordinates directly from completed runs. Supply a population radius justified
-by a radius-convergence calculation. The isolated population must have a
-recorded sample at every required interacting-projectile position. Matching
-uses an absolute coordinate tolerance of 1e-10 only for serialization precision;
-it never generates intermediate values. Missing/ambiguous matches fail.
+Generate plans with `octopus/generate_inp_files.py`, then execute the independent
+paired interacting/isolated histories using `python/run_octopus_workflow.py`.
+Dry-run validation does not establish that physical calculations have completed.
 
-The paired population changes yield a plateau mean loss at each calculated
-height/velocity node. Missing grid nodes and nonfinite values fail. Neither
-electron counts nor reference populations are interpolated.
+## Extract populations and propagate charge states
 
-## Obtain detachment probabilities
+`scripts/extract_tddft_mean_loss.py` uses the Appendix B smooth weight, with
+R=3.5 Angstrom and transition half-width 0.3 Angstrom by default. The same weight
+is used for interacting and isolated density frames. The isolated populations
+must be recorded at matching positions; reference interpolation remains
+disabled as explicitly requested by the author. Coordinates and volume units
+must correspond to the configured Angstrom output.
 
-`scripts/export_detachment_probabilities.py` applies the declared sector
-mapping to each calculated mean-loss node and exports `Pdet=1-P0` unchanged.
-`RTDetachment` separately interpolates the resulting detachment-sector
-probabilities inside the complete grid. It rejects all out-of-domain queries.
-Mapping the nodes before interpolation is intentional: where a cell spans
-the one-electron boundary, this differs from interpolating mean loss and then
-applying the piecewise mapping. No mean-loss interpolation is available.
+The paired outgoing plateau is Pdet=Ndet. Values outside [0,1] fail instead of
+being clipped or converted into a multiple-electron model. Platform means are
+direct averages; there is no slope fit or missing-node filling.
 
-## Evaluate the physical models
+`scripts/export_detachment_probabilities.py` exports calculated Pdet nodes
+unchanged. Intermediate heights use shape-preserving piecewise cubic PCHIP
+at a matching calculated velocity. Extrapolation and velocity interpolation
+are rejected. No force, density, capture or final-yield interpolation is added.
 
-Compute the electrostatic, Mott-Littleton, and dynamic-image energy terms at
-the requested coordinates. The Demkov formula evaluates capture directly;
-it is not interpolated. The capture parameter is derived from binding energies
-in `config/demkov_parameters.yaml`. SciPy supplies the Bessel function; absence
-of that dependency is an error rather than a reason to use a substitute formula.
+Set gamma_c and its source explicitly in `config/demkov_parameters.yaml`.
+Supply calculated encounter energy defects in Hartree. The code evaluates Eq.
+(9) directly and applies the two-state recursion Eq. (10). It does not estimate
+gamma_c from binding energies or infer missing energy-defect values.
 
-Trajectory integration accepts a physical-force callback; no force-grid spline
-is supplied. Feed calculated encounter coordinates, velocities, and energy
-defects to `scripts/compute_sequential_yields.py` together with the directly
-extracted TDDFT grid. Propagation uses chronological F-/F0/F+ transitions.
+The geometry-estimation density script has been removed. The retained
+`compare_on_native_grids.m` accepts explicit matching coordinate axes and
+densities. There is no automatic atom localization or guessed grid spacing.
 
-The density-comparison script requires matching native grids and rejects missing
-density values rather than filling them with zero.
+The retained MATLAB image-potential interface is
+`calc_image_potential(z, v, E0_ev, Ed_ev)` with both dielectric energies required.
+Its original integration algorithm, including its known dimension issue,
+has not been changed. Do not interpret the interface change as successful
+verification of the complete image-potential calculation.
 
-## Verify
+## Validation
 
 Run `python -m unittest discover -s tests -v` and
-`python scripts/audit_repository_payload.py`. Use `scripts/audit_no_scaling.py`
-to compare exported detachment nodes to their calculated sources; optionally
-pass `--capture-table` for direct formula verification of a capture table.
+`python scripts/audit_repository_payload.py`. The tests use explicitly labeled
+test inputs and do not calculate manuscript results. For MATLAB/Octave native
+grid checks, run `addpath('tests'); test_native_grids`.
+`scripts/audit_no_scaling.py` compares exported nodes to their calculated source.
 
-Numerical source data and generated outputs remain outside Git. Preserve
-input/output hashes and run provenance with local results. The repository
-does not synthesize missing production data.
-
-For the native-grid density checks in MATLAB or Octave, run
-`addpath('tests'); test_native_grids` from the repository root.
+Numerical source datasets and generated outputs remain outside Git. Preserve
+their provenance and hashes with the actual results. The code changes alone
+do not establish reproduction of the article's figures.

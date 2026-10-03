@@ -61,24 +61,20 @@ def main(argv: list[str] | None = None) -> int:
     for trajectory_id, events in read_events(args.encounters).items():
         result = propagate_ordered_events(
             events,
-            None,
+            detachment.probability,
             capture.probability,
             initial_state="F_neutral",
-            detachment_sector_probabilities=detachment.sector_probabilities,
         )
         summaries.append({
             "trajectory_id": trajectory_id,
             "event_count": len(events),
             "final_f_minus_fraction": result["yield_final_hybrid"],
             "final_states": result["states"],
-            "transient_f_plus_probability_created": result[
-                "transient_f_plus_probability_created"
-            ],
         })
         histories[trajectory_id] = result["history"]
     payload = {
         "schema_version": 1,
-        "equations": ["the detachment-sector model", "ordered charge-state propagation", "the Demkov capture formula"],
+        "equations": ["Pdet=Ndet, single-electron removal", "ordered charge-state propagation", "the Demkov capture formula"],
         "data_policy": {
             "normalization": "none",
             "scale_factor": 1.0,
@@ -87,9 +83,7 @@ def main(argv: list[str] | None = None) -> int:
         },
         "config": str(args.config),
         "demkov_parameter_definition": {
-            "gamma_equation": "(sqrt(2*Et)+sqrt(2*Ep))/2",
-            "Et_hartree": demkov_parameters.target_binding_energy_hartree,
-            "Ep_hartree": demkov_parameters.projectile_binding_energy_hartree,
+            "gamma_source": demkov_parameters.source,
             "gamma_bohr_inverse": demkov_parameters.gamma_bohr_inverse,
         },
         "tddft_source": {

@@ -1,14 +1,5 @@
 {
-  "schema_version": 1,
-  "purpose": "tracked v=0.30 examples; full 96-run matrix is generated from config",
-  "files": [
-    "octopus/inputs/h2_0/inp",
-    "octopus/inputs/h2_5/inp",
-    "octopus/inputs/h3_0/inp",
-    "octopus/inputs/h3_5/inp",
-    "octopus/inputs/h4_0/inp",
-    "octopus/inputs/h5_0/inp",
-    "octopus/inputs/h7_0/inp",
-    "octopus/inputs/h10_0/inp"
-  ]
+  "schema_version": 2,
+  "status": "requires_explicit_calculation_parameters",
+  "files": []
 }

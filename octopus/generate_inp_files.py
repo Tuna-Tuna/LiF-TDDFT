@@ -31,16 +31,16 @@ def build_manifest(spec, config: dict, input_path: Path) -> dict:
             "from_scratch": False,
             "velocity_au": value,
             "propagation_time_fs": float(ramp["segment_time_fs"]),
-            "ions_constant_velocity": False,
+            "ions_constant_velocity": True,
         }
         for index, value in enumerate(velocities, 1)
     )
     stages.append({
-        "name": "production_ehrenfest",
+        "name": "production_constant_velocity",
         "from_scratch": False,
         "velocity_au": spec.relative_velocity_au,
         "move_ions": True,
-        "ions_constant_velocity": False,
+        "ions_constant_velocity": True,
         "surface_coordinates_fixed": True,
     })
     return {
@@ -80,7 +80,7 @@ def generate(config_path: Path, output_root: Path, dry_run: bool = False) -> lis
                 "preflight": {
                     "relative_velocity_match": True,
                     "height_match": True,
-                    "production_ehrenfest": True,
+                    "production_constant_velocity": True,
                     "fixed_surface_coordinates": True,
                     "zero_initial_transverse_and_normal_velocity": True,
                     "initial_overlap_gate": "requires fragment-orbital calculation",

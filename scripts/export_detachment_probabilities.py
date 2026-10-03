@@ -19,7 +19,7 @@ from lif_tddft.analysis.data_contract import (
     assert_values_identical,
     validate_probability_values,
 )
-from lif_tddft.models.detachment_rt_tddft import detachment_sectors
+from lif_tddft.models.detachment_rt_tddft import detachment_probability
 from lif_tddft.octopus_results import load_mean_loss_grid, sha256_file
 
 
@@ -29,8 +29,7 @@ POLICY = json.loads((ROOT / "config" / "data_policy.json").read_text(encoding="u
 
 
 def pdet_from_mean_loss(value: float) -> float:
-    p0, _, _ = detachment_sectors(float(value))
-    return 1.0 - p0
+    return detachment_probability(value)
 
 
 def export(source: Path, output: Path, metadata_output: Path) -> None:
@@ -76,7 +75,7 @@ def export(source: Path, output: Path, metadata_output: Path) -> None:
         "source": source_label,
         "source_kind": payload["source_kind"],
         "source_sha256": sha256_file(source),
-        "mapping": "Pdet = 1 - P0 from the detachment-sector model",
+        "mapping": "Pdet = Ndet, with 0 <= Ndet <= 1 (single-electron removal)",
         **POLICY,
         "v0p10_special_scaling": False,
     }

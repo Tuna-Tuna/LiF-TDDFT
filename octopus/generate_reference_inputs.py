@@ -34,7 +34,7 @@ def main() -> int:
                 spec,
                 config,
                 move_ions=True,
-                constant_velocity=False,
+                constant_velocity=True,
                 calculation_mode="td",
             ),
             encoding="utf-8",
@@ -43,7 +43,7 @@ def main() -> int:
     (ROOT / "octopus" / "inputs" / "manifest.json").write_text(
         json.dumps({
             "schema_version": 1,
-            "purpose": "tracked v=0.30 examples; full 96-run matrix is generated from config",
+            "purpose": "tracked v=0.30 examples; full paired matrix is generated from the supplied configuration",
             "files": written,
         }, indent=2) + "\n",
         encoding="utf-8",

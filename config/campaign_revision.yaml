@@ -1,11 +1,22 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "campaign_id": "pra-lif-tddft",
-  "heights_bohr": [2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 7.0, 10.0],
-  "relative_velocities_au": [0.10, 0.15, 0.20, 0.30, 0.40, 0.50],
-  "cluster_models": ["C9_one_site"],
-  "variants": ["production", "isolated_projectile"],
-  "initial_projectile_x_bohr": 18.8972612463,
+  "heights_bohr": null,
+  "relative_velocities_au": [
+    0.1,
+    0.15,
+    0.2,
+    0.3,
+    0.4,
+    0.5
+  ],
+  "cluster_models": [
+    "C9_one_site"
+  ],
+  "variants": [
+    "production",
+    "isolated_projectile"
+  ],
   "final_separation_bohr": 18.8972612463,
   "surface_z_bohr": 0.0,
   "projectile_fraction": -1.0,
@@ -18,24 +29,57 @@
   },
   "numerics": {
     "mpi_ranks": 256,
-    "grid_spacing_angstrom": 0.10,
+    "grid_spacing_angstrom": 0.1,
     "box_radius_angstrom": 16.0,
-    "time_step_expression": "0.0006/eV",
+    "time_step_expression": "0.0004*fs",
     "cap_start_angstrom": 12.0,
     "cap_end_angstrom": 16.0,
-    "cap_strength": -0.2,
-    "output_interval": 100
+    "output_interval": 100,
+    "cap_strength_magnitude_by_velocity": {
+      "0.1": null,
+      "0.15": null,
+      "0.2": null,
+      "0.3": null,
+      "0.4": null,
+      "0.5": null
+    },
+    "cap_strength_magnitude_range": [
+      0.2,
+      0.4
+    ]
   },
-  "outputs": ["density", "current", "geometry", "energy", "eigenvalues"],
+  "outputs": [
+    "density",
+    "current",
+    "geometry",
+    "energy",
+    "eigenvalues"
+  ],
   "production": {
     "move_ions": true,
-    "ions_constant_velocity": false,
+    "ions_constant_velocity": true,
     "fixed_surface_coordinates": true,
-    "dynamics": "ehrenfest",
+    "dynamics": "prescribed_constant_velocity",
     "initial_z_velocity_au": 0.0
   },
   "preflight": {
-    "maximum_initial_overlap": 1.0e-6,
-    "coordinate_tolerance_bohr": 1.0e-8
-  }
+    "maximum_initial_overlap": 1e-06,
+    "coordinate_tolerance_bohr": 1e-08
+  },
+  "height_range_bohr": [
+    1.2,
+    10.0
+  ],
+  "initial_projectile_x_angstrom": 9.0,
+  "pseudopotentials": {
+    "family": "Troullier-Martins",
+    "representation": "Kleinman-Bylander",
+    "Li": null,
+    "F": null
+  },
+  "population": {
+    "radius_angstrom": 3.5,
+    "transition_half_width_angstrom": 0.3
+  },
+  "required_inputs_note": "Supply the actual calculated height nodes and per-velocity CAP magnitudes; the manuscript gives ranges only. Supply filenames of the actual Troullier-Martins pseudopotentials. Null entries are not inferred."
 }

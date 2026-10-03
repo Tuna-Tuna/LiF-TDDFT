@@ -1,8 +1,8 @@
 # Pseudopotentials
 
-The inputs expect files named `Li.oncvpsp.psp8` and `F.oncvpsp.psp8`.
-The exact production files and their checksums are not distributed here.
-Supply the actual calculation pseudopotentials, verify their family and input
-settings, and record their SHA-256 hashes. Generic same-element files are not
-substitutes for the production files. The runner records the supplied hashes
-in each completed run's provenance file.
+The PRA manuscript specifies Troullier-Martins norm-conserving pseudopotentials
+in Kleinman-Bylander form. Set the actual Li and F filenames under
+`pseudopotentials` in the campaign configuration and supply those files in
+each run's `input` directory. No replacement files or unverified filenames
+are supplied. The runner records their checksums; the declared family must
+also be checked against the actual source files before a physical calculation.

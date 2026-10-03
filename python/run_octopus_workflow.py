@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-fast ground-state, ramp, and Ehrenfest production runner."""
+"""Fail-fast ground-state, ramp, and prescribed-velocity production runner."""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ def run_plan(
         velocity = float(stage["velocity_au"])
         is_ground_state = stage["name"] == "ground_state"
         is_ramp = stage["name"].startswith("ramp_")
-        constant = bool(stage.get("ions_constant_velocity", False))
+        constant = bool(stage.get("ions_constant_velocity", not is_ground_state))
         from_scratch = "yes" if bool(stage.get("from_scratch")) else "no"
         text = render_input(
             template,
@@ -81,9 +81,9 @@ def run_plan(
             continue
         stage_dir.mkdir(parents=True, exist_ok=False)
         (stage_dir / "inp").write_text(text, encoding="utf-8")
-        required_pseudos = ["F.oncvpsp.psp8"]
+        required_pseudos = [config["pseudopotentials"]["F"]]
         if spec.variant != "isolated_projectile":
-            required_pseudos.append("Li.oncvpsp.psp8")
+            required_pseudos.append(config["pseudopotentials"]["Li"])
         for pseudo_name in required_pseudos:
             pseudo_source = run_dir / "input" / pseudo_name
             if not pseudo_source.is_file():
@@ -114,9 +114,9 @@ def run_plan(
     if dry_run:
         _status(status_path, "validated", completed)
         return
-    pseudo_names = ["F.oncvpsp.psp8"]
+    pseudo_names = [config["pseudopotentials"]["F"]]
     if spec.variant != "isolated_projectile":
-        pseudo_names.append("Li.oncvpsp.psp8")
+        pseudo_names.append(config["pseudopotentials"]["Li"])
     pseudo = [run_dir / "input" / name for name in pseudo_names]
     provenance = build_provenance(
         ROOT,

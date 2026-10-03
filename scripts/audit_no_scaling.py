@@ -20,7 +20,7 @@ from lif_tddft.analysis.data_contract import (
     validate_probability_values,
 )
 from lif_tddft.models.demkov_parameters import load_demkov_parameters
-from lif_tddft.models.detachment_rt_tddft import detachment_sectors
+from lif_tddft.models.detachment_rt_tddft import detachment_probability
 from lif_tddft.octopus_results import load_mean_loss_grid
 
 
@@ -33,7 +33,7 @@ def detachment_values(
     velocities = np.asarray(payload["velocities_au"], dtype=float)
     mean_loss = np.asarray(payload["mean_loss"], dtype=float)
     source = np.asarray(
-        [1.0 - detachment_sectors(value)[0] for row in mean_loss for value in row],
+        [detachment_probability(value) for row in mean_loss for value in row],
         dtype=float,
     )
     exported = np.asarray([float(row["probability_p_det"]) for row in long])
@@ -41,7 +41,7 @@ def detachment_values(
     if np.count_nonzero(velocity_mask) != 1:
         raise ValueError("the TDDFT grid must contain exactly one v=0.10 column")
     source_v010 = np.asarray(mean_loss[:, velocity_mask].reshape(-1), dtype=float)
-    source_v010 = np.asarray([1.0 - detachment_sectors(value)[0] for value in source_v010])
+    source_v010 = np.asarray([detachment_probability(value) for value in source_v010])
     exported_v010 = np.asarray([
         float(row["probability_p_det"])
         for row in long
@@ -112,7 +112,7 @@ def main(argv: list[str] | None = None) -> int:
         "detachment_v0p10_bitwise_identical": True,
         "capture_rows_checked": capture_count,
         "capture_max_absolute_error": capture_difference,
-        "note": "Detachment nodes use the sector mapping; capture values use direct formula evaluation.",
+        "note": "Detachment nodes use Pdet=Ndet; capture values use direct formula evaluation.",
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

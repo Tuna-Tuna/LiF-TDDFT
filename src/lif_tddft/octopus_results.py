@@ -17,7 +17,7 @@ from lif_tddft.analysis.population import (
     plateau_statistics,
 )
 from lif_tddft.analysis.data_contract import assert_no_scaling_policy
-from lif_tddft.models.detachment_rt_tddft import RTDetachment, detachment_sectors
+from lif_tddft.models.detachment_rt_tddft import RTDetachment, detachment_probability
 
 
 _TD_DIRECTORY = re.compile(r"^td\.(\d+)$")
@@ -120,6 +120,7 @@ def integrate_density_on_rectilinear_grid(
     axes: tuple[np.ndarray, np.ndarray, np.ndarray],
     center: np.ndarray,
     radius: float,
+    transition_half_width: float = 0.3,
 ) -> float:
     """Integrate one density frame in a moving sphere without rescaling."""
 
@@ -139,7 +140,8 @@ def integrate_density_on_rectilinear_grid(
     mesh = np.meshgrid(*coordinates, indexing="ij")
     points = np.column_stack([component.reshape(-1) for component in mesh])
     return moving_sphere_population(
-        values.reshape(-1), points, np.asarray(center, dtype=float), radius, float(np.prod(spacings))
+        values.reshape(-1), points, np.asarray(center, dtype=float), radius, float(np.prod(spacings)),
+        transition_half_width=transition_half_width
     )
 
 
@@ -184,6 +186,7 @@ def extract_population_series(
     natoms: int,
     projectile_index: int,
     radius: float,
+    transition_half_width: float = 0.3,
     density_loader: Callable[[str | Path], tuple[np.ndarray, tuple[np.ndarray, np.ndarray, np.ndarray]]] = load_octopus_density,
 ) -> PopulationSeries:
     stage = Path(stage_dir)
@@ -202,7 +205,7 @@ def extract_population_series(
     populations = []
     for iteration, center in zip(iterations, positions):
         density, axes = density_loader(frames[int(iteration)])
-        populations.append(integrate_density_on_rectilinear_grid(density, axes, center, radius))
+        populations.append(integrate_density_on_rectilinear_grid(density, axes, center, radius, transition_half_width))
     source_files = (coordinate_path, *(frames[int(value)] for value in iterations))
     return PopulationSeries(
         iterations=iterations,
@@ -253,6 +256,7 @@ def extract_paired_plateau(
     isolated_stage: str | Path,
     *,
     radius: float,
+    transition_half_width: float = 0.3,
     tail_fraction: float,
     production_natoms: int = 19,
     isolated_natoms: int = 1,
@@ -264,6 +268,7 @@ def extract_paired_plateau(
         natoms=production_natoms,
         projectile_index=projectile_index,
         radius=radius,
+        transition_half_width=transition_half_width,
         density_loader=density_loader,
     )
     isolated = extract_population_series(
@@ -271,6 +276,7 @@ def extract_paired_plateau(
         natoms=isolated_natoms,
         projectile_index=projectile_index,
         radius=radius,
+        transition_half_width=transition_half_width,
         density_loader=density_loader,
     )
     aligned = align_isolated_population(
@@ -281,7 +287,7 @@ def extract_paired_plateau(
     mean_loss_series = paired_projectile_mean_loss(production.populations, aligned)
     statistics = plateau_statistics(mean_loss_series, tail_fraction=tail_fraction)
     mean_loss = float(statistics["mean"])
-    detachment_sectors(mean_loss)
+    detachment_probability(mean_loss)
     files = (*production.source_files, *isolated.source_files)
     provenance = {
         "production_stage": str(Path(production_stage).resolve()),
@@ -290,6 +296,7 @@ def extract_paired_plateau(
             {"path": str(path.resolve()), "sha256": sha256_file(path)} for path in files
         ],
         "frame_count": int(production.iterations.size),
+        "weight": {"kind": "smooth_sphere", "radius": radius, "half_width": transition_half_width},
         "plateau": statistics,
     }
     return mean_loss, provenance
@@ -309,7 +316,7 @@ def load_completed_run(run_dir: str | Path) -> tuple[dict, Path]:
         raise ValueError(
             f"{input_path} must declare UnitsOutput=eV_Angstrom for the extraction radius contract"
         )
-    stage = root / "stages" / "production_ehrenfest"
+    stage = root / "stages" / "production_constant_velocity"
     if not stage.is_dir():
         raise FileNotFoundError(stage)
     return manifest, stage

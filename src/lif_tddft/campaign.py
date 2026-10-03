@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import json
+import math
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -59,17 +60,26 @@ def expand_campaign(config: dict[str, Any]) -> list[RunSpec]:
     missing = [key for key in required if key not in config]
     if missing:
         raise ValueError(f"missing campaign keys: {', '.join(missing)}")
-    pf = float(config.get("projectile_fraction", -0.5))
-    cf = float(config.get("cluster_fraction", 0.5))
+    heights = config['heights_bohr']
+    if not isinstance(heights, list) or not heights:
+        raise ValueError('heights_bohr is required: supply actual calculated nodes within 1.2-10 bohr')
+    if any(not math.isfinite(float(h)) or not 1.2 <= float(h) <= 10.0 for h in heights):
+        raise ValueError('PRA collision heights must lie in [1.2,10] bohr')
+    if any(float(b) <= float(a) for a,b in zip(heights, heights[1:])):
+        raise ValueError('height nodes must be strictly increasing')
+    pf = float(config.get("projectile_fraction", -1.0))
+    cf = float(config.get("cluster_fraction", 0.0))
     if abs(abs(pf - cf) - 1.0) > 1.0e-12:
         raise ValueError("projectile_fraction and cluster_fraction must give unit relative speed")
+    if pf != -1.0 or cf != 0.0:
+        raise ValueError("PRA flyby requires a fixed surface and projectile moving toward decreasing x")
     specs: list[RunSpec] = []
     for height in map(float, config["heights_bohr"]):
         if height <= 0:
             raise ValueError("height must be positive")
         for velocity in map(float, config["relative_velocities_au"]):
-            if velocity <= 0:
-                raise ValueError("relative velocity must be positive")
+            if not math.isfinite(velocity) or not 0.1 <= velocity <= 0.5:
+                raise ValueError("PRA target velocity must lie in [0.1,0.5] a.u.")
             for model in config["cluster_models"]:
                 for variant in config["variants"]:
                     run_id = (

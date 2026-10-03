@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import re
+import math
 from pathlib import Path
 from typing import Any
 
 from .campaign import RunSpec
+from .units import angstrom_to_bohr
 
 
 def render_input(
@@ -17,20 +19,37 @@ def render_input(
     relative_velocity_au: float | None = None,
     from_scratch: str = "no",
     move_ions: bool = True,
-    constant_velocity: bool = False,
+    constant_velocity: bool = True,
     calculation_mode: str = "td",
     propagation_time_expression: str | None = None,
 ) -> str:
     numerics = config["numerics"]
+    if move_ions and not constant_velocity:
+        raise ValueError('PRA moving stages require prescribed constant velocity')
+    cap_map = numerics.get('cap_strength_magnitude_by_velocity', {})
+    supplied = [value for key,value in cap_map.items()
+                if math.isclose(float(key), spec.relative_velocity_au, rel_tol=0, abs_tol=1e-12)]
+    if len(supplied) != 1 or supplied[0] is None:
+        raise ValueError('CAP magnitude is required for each target velocity; no guessed mapping')
+    cap_magnitude = float(supplied[0])
+    if not math.isfinite(cap_magnitude) or not 0.2 <= cap_magnitude <= 0.4:
+        raise ValueError('CAP magnitude must lie in the manuscript range [0.2,0.4]')
+    pseudos = config.get('pseudopotentials', {})
+    if pseudos.get('family') != 'Troullier-Martins' or pseudos.get('representation') != 'Kleinman-Bylander':
+        raise ValueError('PRA inputs require Troullier-Martins pseudopotentials in Kleinman-Bylander form')
+    for element in ('F',) if spec.variant == 'isolated_projectile' else ('Li','F'):
+        filename = pseudos.get(element)
+        if not isinstance(filename, str) or not re.fullmatch(r'[A-Za-z0-9_.-]+', filename) or filename in ('.','..'):
+            raise ValueError(f'{element} pseudopotential filename is required; use a plain filename')
     velocity = float(spec.relative_velocity_au if relative_velocity_au is None else relative_velocity_au)
-    pf = float(config.get("projectile_fraction", -0.5))
-    cf = float(config.get("cluster_fraction", 0.5))
+    pf = float(config.get("projectile_fraction", -1.0))
+    cf = float(config.get("cluster_fraction", 0.0))
     outputs = list(config.get("outputs", []))
     spatial_outputs = [item for item in outputs if item in {"density", "current"}]
     td_outputs = [item for item in outputs if item not in spatial_outputs]
     projectile_velocity = -velocity if spec.variant == "isolated_projectile" else pf * velocity
-    active_site_x_bohr = -0.8 * 3.7958
-    initial_separation = float(config["initial_projectile_x_bohr"])
+    active_site_x_bohr = 0.0
+    initial_separation = angstrom_to_bohr(config["initial_projectile_x_angstrom"])
     final_separation = float(config["final_separation_bohr"])
     context = dict(
         run_id=spec.run_id,
@@ -49,7 +68,9 @@ def render_input(
         cluster_velocity_au=cf * velocity,
         projectile_x_bohr=active_site_x_bohr + initial_separation,
         propagation_distance_bohr=initial_separation + final_separation,
-        cap_strength=float(numerics["cap_strength"]),
+        cap_strength=-cap_magnitude,
+        lithium_pseudopotential=pseudos.get("Li"),
+        fluorine_pseudopotential=pseudos["F"],
         cap_start_angstrom=float(numerics["cap_start_angstrom"]),
         cap_end_angstrom=float(numerics["cap_end_angstrom"]),
         output_interval=int(numerics["output_interval"]),
@@ -121,7 +142,7 @@ def assert_input_contract(
     height_bohr: float,
     relative_velocity_au: float,
     move_ions: bool = True,
-    constant_velocity: bool = False,
+    constant_velocity: bool = True,
     expected_velocity_lines: int = 19,
 ) -> None:
     expected_move = "yes" if move_ions else "no"

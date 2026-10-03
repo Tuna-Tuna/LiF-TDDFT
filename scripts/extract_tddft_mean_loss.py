@@ -56,6 +56,7 @@ def build_grid(
     *,
     radius_angstrom: float,
     tail_fraction: float,
+    transition_half_width_angstrom: float = 0.3,
 ) -> dict[str, object]:
     if radius_angstrom <= 0.0:
         raise ValueError("radius_angstrom must be positive")
@@ -69,6 +70,7 @@ def build_grid(
             production_stage,
             isolated_stage,
             radius=radius_angstrom,
+            transition_half_width=transition_half_width_angstrom,
             tail_fraction=tail_fraction,
         )
         extracted.append(
@@ -94,14 +96,15 @@ def build_grid(
     values = np.asarray(
         [[float(lookup[(height, velocity)]["mean_loss"]) for velocity in velocities] for height in heights]
     )
-    if np.any(~np.isfinite(values)) or np.any(values < 0.0) or np.any(values >= 2.0):
-        raise ValueError("extracted mean loss must be finite and satisfy 0 <= Nbar_det < 2")
+    if np.any(~np.isfinite(values)) or np.any(values < 0.0) or np.any(values > 1.0):
+        raise ValueError("extracted mean loss must be finite and satisfy 0 <= Ndet <= 1")
     return {
         "schema_version": 1,
         "source_kind": "octopus_rt_tddft_density",
         "equation": "paired interacting-minus-isolated population change",
         "cluster_model": models[0],
         "bound_radius_angstrom": radius_angstrom,
+        "transition_half_width_angstrom": transition_half_width_angstrom,
         "tail_fraction": tail_fraction,
         "data_policy": DATA_POLICY,
         "heights_bohr": heights,
@@ -114,13 +117,15 @@ def build_grid(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("campaign_root", type=Path)
-    parser.add_argument("--radius-angstrom", type=float, required=True)
+    parser.add_argument("--radius-angstrom", type=float, default=3.5)
+    parser.add_argument("--transition-half-width-angstrom", type=float, default=0.3)
     parser.add_argument("--tail-fraction", type=float, default=0.2)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     payload = build_grid(
         args.campaign_root,
         radius_angstrom=args.radius_angstrom,
+        transition_half_width_angstrom=args.transition_half_width_angstrom,
         tail_fraction=args.tail_fraction,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)

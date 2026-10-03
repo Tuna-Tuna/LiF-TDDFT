@@ -1,4 +1,4 @@
-function image_potential = calc_image_potential(z_grid, velocity_list)
+function image_potential = calc_image_potential(z_grid, velocity_list, dielectric_energy_0_ev, dielectric_energy_d_ev)
 % CALC_IMAGE_POTENTIAL  Compute image potential energy for a charged
 %                       projectile moving near a dielectric surface.
 %
@@ -18,12 +18,14 @@ function image_potential = calc_image_potential(z_grid, velocity_list)
 %       Re(W) = (E1^2 + E2^2 - 1) / ((E1+1)^2 + E2^2)   (reflection coeff)
 %       V(z,v) = -1/(pi*v) * integral( K0(2*W*z/v) * Re(W) ) dW
 %
-%     where eps_0 = 17.1 eV and eps_d = 14.9 eV are characteristic
-%     energies of the LiF dielectric function.
+%     where eps_0 and eps_d are caller-supplied characteristic energies.
+%     Their provenance must be recorded with the calculation.
 %
 %   INPUT:
 %       z_grid       - Height grid [num_z x 1] in atomic units (Bohr).
 %       velocity_list - Projectile velocity list [1 x num_v] in atomic units.
+%       dielectric_energy_0_ev, dielectric_energy_d_ev - Required positive
+%                       characteristic energies in eV; no default values.
 %
 %   OUTPUT:
 %       image_potential - Matrix [num_z x num_v] of image potential energy
@@ -33,7 +35,7 @@ function image_potential = calc_image_potential(z_grid, velocity_list)
 %   USAGE:
 %       z = linspace(1, 10, 1801);
 %       v = [0.1, 0.15, 0.2, 0.3, 0.4, 0.5];
-%       V_image = calc_image_potential(z, v);
+%       V_image = calc_image_potential(z, v, E0_ev, Ed_ev);
 %       [~, F_image] = gradient(V_image, 0.005);
 %       F_image = -F_image / 27.2116;  % Convert to atomic force units
 %
@@ -44,17 +46,23 @@ function image_potential = calc_image_potential(z_grid, velocity_list)
 %     - MATLAB (besselk for modified Bessel function K0)
 %
 %   NOTE:
-%     The dielectric parameters (E0 = 17.1 eV, Ed = 14.9 eV) are fitted
-%     to the LiF optical data. The integration cutoffs (W_max = 0.5,
+%     The caller supplies dielectric parameters.
+%     The integration cutoffs (W_max = 0.5,
 %     T_max = 0.5) are chosen based on convergence testing for the
 %     relevant velocity range (v ~ 0.1-0.5 au).
 %
 %   See also: besselk, trapz, gradient
 
+if nargin ~= 4
+    error('imagepotential:parameters', 'Both dielectric energies must be supplied explicitly.');
+end
+validateattributes(dielectric_energy_0_ev, {'numeric'}, {'scalar', 'real', 'finite', 'positive'});
+validateattributes(dielectric_energy_d_ev, {'numeric'}, {'scalar', 'real', 'finite', 'positive'});
+
 %% ==================== Physical Constants ====================
 HARTREE_TO_EV    = 27.2116;          % eV / Hartree
-DIELEC_ENERGY_D  = 14.9 / HARTREE_TO_EV;  % Ed, Hartree
-DIELEC_ENERGY_0  = 17.1 / HARTREE_TO_EV;  % E0, Hartree
+DIELEC_ENERGY_D  = dielectric_energy_d_ev / HARTREE_TO_EV;  % Ed, Hartree
+DIELEC_ENERGY_0  = dielectric_energy_0_ev / HARTREE_TO_EV;  % E0, Hartree
 
 %% ==================== Integration Parameters ====================
 % Momentum integration grid (W-space)

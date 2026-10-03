@@ -1,52 +1,17 @@
-"""Nonresonant Demkov electron capture."""
+"""PRA Eq. (9): near-resonant Demkov electron capture."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-import math
 
 import numpy as np
 
 
-def gamma_from_binding_energies(
-    target_binding_energy_hartree: float,
-    projectile_binding_energy_hartree: float,
-) -> float:
-    """Return ``gamma=(sqrt(2*Et)+sqrt(2*Ep))/2`` in inverse bohr.
-
-    ``Et`` and ``Ep`` must be positive binding energies in Hartree. In atomic
-    units, the square root of an energy has units of inverse bohr.
-    """
-
-    target = float(target_binding_energy_hartree)
-    projectile = float(projectile_binding_energy_hartree)
-    if not np.isfinite(target) or target <= 0.0:
-        raise ValueError("target binding energy Et must be finite and positive")
-    if not np.isfinite(projectile) or projectile <= 0.0:
-        raise ValueError("projectile binding energy Ep must be finite and positive")
-    return (math.sqrt(2.0 * target) + math.sqrt(2.0 * projectile)) / 2.0
-
-
 @dataclass(frozen=True)
 class DemkovCapture:
-    """Evaluate the SI Demkov probability without empirical envelopes."""
+    """Evaluate PRA Eq. (9) with an explicitly supplied gamma_c."""
 
     gamma_bohr_inverse: float
-
-    @classmethod
-    def from_binding_energies(
-        cls,
-        target_binding_energy_hartree: float,
-        projectile_binding_energy_hartree: float,
-    ) -> "DemkovCapture":
-        """Construct the model from the manuscript definition of gamma."""
-
-        return cls(
-            gamma_from_binding_energies(
-                target_binding_energy_hartree,
-                projectile_binding_energy_hartree,
-            )
-        )
 
     def __post_init__(self) -> None:
         if (

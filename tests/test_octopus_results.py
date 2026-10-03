@@ -53,6 +53,7 @@ class OctopusResultTests(unittest.TestCase):
             (axis, axis, axis),
             np.zeros(3),
             0.5,
+            transition_half_width=0.1,
         )
         self.assertAlmostEqual(population, 4.0 * np.pi * 0.5**3 / 3.0, delta=0.08)
 
@@ -123,6 +124,7 @@ class OctopusResultTests(unittest.TestCase):
                 stages["production"],
                 stages["isolated"],
                 radius=2.0,
+                transition_half_width=0.01,
                 tail_fraction=0.4,
                 production_natoms=1,
                 isolated_natoms=1,

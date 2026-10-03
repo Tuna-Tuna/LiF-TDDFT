@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+from .spherical_weight import spherical_weight
 
 
 def moving_sphere_population(
@@ -11,6 +12,7 @@ def moving_sphere_population(
     projectile_position: np.ndarray,
     radius: float,
     voxel_volume: float,
+    *, transition_half_width: float,
 ) -> float:
     density = np.asarray(density, dtype=float).reshape(-1)
     points = np.asarray(grid_points, dtype=float).reshape(-1, 3)
@@ -19,8 +21,8 @@ def moving_sphere_population(
         raise ValueError("density and grid point counts differ")
     if radius <= 0 or voxel_volume <= 0:
         raise ValueError("radius and voxel_volume must be positive")
-    mask = np.einsum("ij,ij->i", points - center, points - center) <= radius**2
-    return float(density[mask].sum() * voxel_volume)
+    weight, _ = spherical_weight(points, center, radius, transition_half_width)
+    return float(np.sum(density * weight) * voxel_volume)
 
 
 def population_timeseries(
@@ -29,6 +31,7 @@ def population_timeseries(
     projectile_positions: np.ndarray,
     radii: list[float],
     voxel_volume: float,
+    *, transition_half_width: float,
 ) -> dict[float, np.ndarray]:
     rho = np.asarray(densities, dtype=float)
     centers = np.asarray(projectile_positions, dtype=float)
@@ -36,7 +39,7 @@ def population_timeseries(
         raise ValueError("one projectile position is required per density frame")
     return {
         radius: np.asarray(
-            [moving_sphere_population(frame, grid_points, center, radius, voxel_volume)
+            [moving_sphere_population(frame, grid_points, center, radius, voxel_volume, transition_half_width=transition_half_width)
              for frame, center in zip(rho, centers)],
             dtype=float,
         )
@@ -86,11 +89,8 @@ def plateau_statistics(values: np.ndarray, tail_fraction: float = 0.2) -> dict[s
         raise ValueError("plateau analysis needs at least five samples")
     count = max(3, int(np.ceil(series.size * tail_fraction)))
     tail = series[-count:]
-    x = np.arange(count, dtype=float)
-    slope = float(np.polyfit(x, tail, 1)[0])
     return {
         "mean": float(tail.mean()),
         "standard_deviation": float(tail.std(ddof=1)),
-        "slope_per_sample": slope,
         "samples": count,
     }
